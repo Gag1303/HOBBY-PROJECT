@@ -5,52 +5,23 @@ This is one page of the CFP toolkit app. Start the whole app from the project fo
 (or double-click run_app.bat).
 """
 
-from datetime import date
-
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from module2_investment import client
-from module2_investment.simulate import FREQUENCIES, STRATEGIES, simulate, trade_dates
+from module2_investment.common import (
+    DATA_NOTE, DOWN_COLOR, SERIES_COLORS, UP_COLOR, csv_bytes, last_date_or_stop,
+    load_full_history, load_market, signed,
+)
 from module2_investment.tables import (
-    add_growth, amc_table, calendar_year_returns, dividends, drawdown, fund_stats, latest_nav,
-    period_returns, to_dataframe,
+    calendar_year_returns, dividends, drawdown, fund_stats, period_returns,
 )
 
-# Colors (validated colorblind-safe order). Up/down use blue/red rather than color alone:
-# numbers always carry a +/- sign too.
-SERIES_COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"]
-UP_COLOR, DOWN_COLOR = "#2a78d6", "#e34948"
 MAX_COMPARE = 5
 
 # Months back for each period button. 0 = year to date, None = whole history.
 PERIODS = {"1M": 1, "3M": 3, "6M": 6, "YTD": 0, "1Y": 12, "3Y": 36, "5Y": 60, "10Y": 120, "Max": None}
-
-
-# ---------- data loading (cached so we don't call the API on every click) ----------
-
-@st.cache_data(ttl=3600, show_spinner=False)
-def load_last_date() -> date:
-    return client.last_business_date()
-
-
-@st.cache_data(ttl=3600 * 24, show_spinner=False)
-def load_amcs() -> pd.DataFrame:
-    return amc_table()
-
-
-@st.cache_data(ttl=3600, show_spinner=False)
-def load_market(day: date) -> pd.DataFrame:
-    return latest_nav(day, amcs=load_amcs())
-
-
-@st.cache_data(ttl=3600 * 6, show_spinner=False)
-def load_full_history(symbol: str, to_date: date) -> pd.DataFrame:
-    """Whole NAV history of a fund (one fast request), with the dividends-reinvested growth."""
-    df = to_dataframe(client.nav_history(symbol, to_date=to_date), load_amcs())
-    return add_growth(df.drop_duplicates(subset=["navDate"])) if not df.empty else df
 
 
 def period_start(end: pd.Timestamp, months: int | None) -> pd.Timestamp | None:
@@ -61,122 +32,10 @@ def period_start(end: pd.Timestamp, months: int | None) -> pd.Timestamp | None:
     return end - pd.DateOffset(months=months)
 
 
-def csv_bytes(df: pd.DataFrame) -> bytes:
-    return df.to_csv(index=False).encode("utf-8-sig")  # BOM so Excel shows Thai text
-
-
-def signed(x: float, digits: int = 2) -> str:
-    return "–" if pd.isna(x) else f"{x:+.{digits}f}%"
-
-
-STRATEGY_HELP = {
-    "Lump sum": "Invest the whole amount once, on the start date.",
-    "DCA": "Dollar cost averaging: invest the same amount every period, whatever the price.",
-    "VCA": "Value averaging: the portfolio should grow by a fixed amount every period. Each period you "
-           "top up whatever is needed to reach the target, so you buy more when prices fall and "
-           "less (or nothing) when they rise.",
-}
-
-
-def investment_simulation(hist: pd.DataFrame) -> None:
-    """Back-test Lump sum / DCA / VCA on one fund (Fund detail tab)."""
-    prices = hist.set_index("navDate")["growth"]
-    first_day, last_day = prices.index[0].date(), prices.index[-1].date()
-    default_start = max(first_day, (prices.index[-1] - pd.DateOffset(years=5)).date())
-
-    c1, c2, c3 = st.columns([2, 1, 1])
-    strategy = c1.radio("Strategy", STRATEGIES, index=1, horizontal=True)
-    start = c2.date_input("Start", value=default_start, min_value=first_day, max_value=last_day)
-    end = c3.date_input("End", value=last_day, min_value=first_day, max_value=last_day)
-    st.caption(STRATEGY_HELP[strategy])
-
-    c1, c2, c3 = st.columns([2, 1, 1])
-    if strategy == "Lump sum":
-        amount = c1.number_input("Amount (THB)", min_value=100, value=100_000, step=1_000, format="%d")
-        frequency, allow_sell = "Monthly", False
-    else:
-        label = "Amount each period (THB)" if strategy == "DCA" else "Target growth each period (THB)"
-        amount = c1.number_input(label, min_value=100, value=5_000, step=500, format="%d")
-        frequency = c2.selectbox("Every", list(FREQUENCIES))
-        allow_sell = strategy == "VCA" and c3.toggle(
-            "Sell when above target", help="Off: when the portfolio is above target you just skip "
-                                           "that period. On: you sell the part above target.")
-
-    if start >= end:
-        st.warning("Start date must be before the end date.")
-        return
-    timeline, trades, s = simulate(prices, start, end, strategy, amount, frequency, allow_sell)
-    if not s:
-        st.warning("Not enough NAV data in this period.")
-        return
-
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Money invested", f"{s['Money in']:,.0f} THB")
-    m2.metric("Value at end", f"{s['Value now']:,.0f} THB")
-    m3.metric("Profit", f"{s['Profit']:,.0f} THB", signed(s["Profit %"]))
-    m4.metric("Return per year", signed(s["Return per year %"]),
-              help="Money-weighted return (IRR, like Excel XIRR). Fair for comparing strategies "
-                   "that put money in at different times.")
-    if s["Money out (sold)"] > 0:
-        st.caption(f"Includes {s['Money out (sold)']:,.0f} THB taken out by selling above target.")
-
-    fig = go.Figure([
-        go.Scatter(x=timeline.index, y=timeline["value"], name="Portfolio value",
-                   line=dict(width=2, color=SERIES_COLORS[0]),
-                   hovertemplate="%{y:,.0f} THB<extra>Portfolio value</extra>"),
-        go.Scatter(x=timeline.index, y=timeline["invested"], name="Money invested",
-                   line=dict(width=2, color=SERIES_COLORS[1], shape="hv"),
-                   hovertemplate="%{y:,.0f} THB<extra>Money invested</extra>"),
-    ])
-    fig.update_layout(height=420, margin=dict(l=0, r=0, t=30, b=0), hovermode="x unified",
-                      yaxis=dict(title="THB", tickformat=","),
-                      legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom"))
-    st.plotly_chart(fig, use_container_width=True)
-
-    nav = hist.set_index("navDate")["navPerUnit"]
-    with st.expander(f"Every buy / sell ({s['Trades']})"):
-        rows = trades.assign(nav=trades["date"].map(nav))[["date", "nav", "cash", "valueAfter"]]
-        rows = rows[rows["cash"] != 0].style.format(
-            {"date": "{:%d %b %Y}", "nav": "{:.4f}", "cash": "{:+,.0f}", "valueAfter": "{:,.0f}"})
-        st.dataframe(rows, hide_index=True, use_container_width=True, column_config={
-            "date": "Date",
-            "nav": "NAV",
-            "cash": "Cash in (+) / out (−)",
-            "valueAfter": "Portfolio value after",
-        })
-
-    # Same period, all three strategies, with comparable amounts.
-    per_period = amount
-    if strategy == "Lump sum":
-        n = len(trade_dates(prices, start, end, frequency))
-        per_period = amount / max(n, 1)
-    dca = simulate(prices, start, end, "DCA", per_period, frequency)[2]
-    results = {
-        "Lump sum": simulate(prices, start, end, "Lump sum", dca["Money in"])[2],
-        "DCA": dca,
-        "VCA": simulate(prices, start, end, "VCA", per_period, frequency, allow_sell)[2],
-    }
-    table = pd.DataFrame(results).T[["Money in", "Value now", "Profit", "Profit %",
-                                     "Return per year %", "Largest single top-up"]]
-    st.markdown(f"#### All strategies · same period ({frequency.lower()}, "
-                f"{per_period:,.0f} THB per period)")
-    money_cols = ["Money in", "Value now", "Profit", "Largest single top-up"]
-    styled = table.style.format("{:,.0f}", subset=money_cols).format(signed, subset=["Profit %", "Return per year %"])
-    st.dataframe(styled, use_container_width=True, column_config={"Value now": "Value at end"})
-    st.caption("Lump sum invests the same total as DCA, all on the first day. VCA's target grows by "
-               "the same amount per period, so the money it needs is different. Dividends are "
-               "reinvested; fees and taxes are not included. Past performance does not guarantee "
-               "future results.")
-
-
 # ---------- sidebar ----------
 
 st.sidebar.subheader("Thai mutual funds")
-try:
-    last_date = load_last_date()
-except Exception as e:  # network down, API changed, ...
-    st.error(f"Could not reach the data source: {e}")
-    st.stop()
+last_date = last_date_or_stop()
 
 day = st.sidebar.date_input("NAV date", value=last_date, max_value=last_date,
                             help="Weekends/holidays have no data.")
@@ -184,10 +43,7 @@ name_col = "nameTh" if st.sidebar.toggle("Show Thai fund names") else "nameEn"
 if st.sidebar.button("🔄 Refresh data"):
     st.cache_data.clear()
     st.rerun()
-st.sidebar.caption(
-    "Data: thaimutualfund.com (AIMC) via api.settrade.com. "
-    "For personal/educational use only, not for commercial use."
-)
+st.sidebar.caption(DATA_NOTE)
 
 with st.spinner(f"Loading latest NAV of all funds as of {day} ..."):
     market = load_market(day)
@@ -324,26 +180,25 @@ with tab_detail:
         st.caption("Periods of 1 year or more are also shown per year, as on official factsheets. "
                    "A dash means the fund is younger than the period.")
 
-        show = st.radio("Chart", ["NAV per unit", "Investment simulation"], horizontal=True)
-        if show == "NAV per unit":
-            fig = go.Figure(go.Scatter(
-                x=hist["navDate"], y=hist["navPerUnit"], name="NAV per unit",
-                line=dict(width=2, color=SERIES_COLORS[0]),
-                hovertemplate="%{x|%d %b %Y}<br>NAV %{y:.4f}<extra></extra>",
-            ))
-            fig.update_layout(
-                height=420, margin=dict(l=0, r=0, t=30, b=0), hovermode="x unified",
-                xaxis=dict(rangeselector=dict(buttons=[
-                    dict(count=1, label="1Y", step="year", stepmode="backward"),
-                    dict(count=3, label="3Y", step="year", stepmode="backward"),
-                    dict(count=5, label="5Y", step="year", stepmode="backward"),
-                    dict(count=10, label="10Y", step="year", stepmode="backward"),
-                    dict(label="All", step="all"),
-                ])),
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            investment_simulation(hist)
+        fig = go.Figure(go.Scatter(
+            x=hist["navDate"], y=hist["navPerUnit"], name="NAV per unit",
+            line=dict(width=2, color=SERIES_COLORS[0]),
+            hovertemplate="%{x|%d %b %Y}<br>NAV %{y:.4f}<extra></extra>",
+        ))
+        fig.update_layout(
+            height=420, margin=dict(l=0, r=0, t=30, b=0), hovermode="x unified",
+            xaxis=dict(rangeselector=dict(buttons=[
+                dict(count=1, label="1Y", step="year", stepmode="backward"),
+                dict(count=3, label="3Y", step="year", stepmode="backward"),
+                dict(count=5, label="5Y", step="year", stepmode="backward"),
+                dict(count=10, label="10Y", step="year", stepmode="backward"),
+                dict(label="All", step="all"),
+            ])),
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        if st.button(f"📈 Simulate Lump sum / DCA / VCA in {sym}"):
+            st.session_state["sim_symbol"] = sym
+            st.switch_page("module2_investment/simulator.py")
 
         c1, c2 = st.columns(2)
 

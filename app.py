@@ -18,8 +18,10 @@ pages = {
         st.Page("home.py", title="Home", icon="🏠", default=True),
     ],
     "Module 2 · Investment planning": [
-        st.Page("module2_investment/dashboard.py", title="Thai mutual funds", icon="📈",
+        st.Page("module2_investment/dashboard.py", title="Thai mutual funds", icon="🏦",
                 url_path="mutual-funds"),
+        st.Page("module2_investment/simulator.py", title="Investment simulator", icon="📈",
+                url_path="simulator"),
     ],
 }
 

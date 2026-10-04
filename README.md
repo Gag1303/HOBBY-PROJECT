@@ -7,7 +7,7 @@ Personal practice tools, organised by the 6 modules of the Thai CFP® program.
 | Module | Topic | Tools | Folder |
 |---|---|---|---|
 | 1 | Fundamentals of financial planning | – | – |
-| 2 | Investment planning | Thai mutual fund dashboard & data downloader | [module2_investment/](module2_investment/) |
+| 2 | Investment planning | Thai mutual fund dashboard, investment simulator (Lump sum / DCA / VCA), data downloader | [module2_investment/](module2_investment/) |
 | 3 | Risk management & insurance planning | – | – |
 | 4 | Retirement planning & employee benefits | – | – |
 | 5 | Tax & estate planning | – | – |

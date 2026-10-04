@@ -8,7 +8,8 @@ MODULES = [
      "Ideas: time value of money calculator, personal financial statements & ratios.", None),
     (2, "Investment planning", "การวางแผนการลงทุน",
      "Thai mutual fund data: latest NAV of every fund, full performance history, "
-     "fund comparison, risk numbers.", "module2_investment/dashboard.py"),
+     "fund comparison, risk numbers. Investment simulator: Lump sum vs DCA vs VCA.",
+     "module2_investment/dashboard.py"),
     (3, "Risk management & insurance planning", "การวางแผนการประกันภัย",
      "Ideas: life insurance needs calculator (income replacement / needs approach).", None),
     (4, "Retirement planning & employee benefits", "การวางแผนเพื่อวัยเกษียณ",
