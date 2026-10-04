@@ -41,60 +41,95 @@ funds = market.sort_values("symbol")
 options = [fund_label(s, n) for s, n in zip(funds["symbol"], funds["nameEn"])]
 by_symbol = {symbol_of(o): o for o in options}
 
-# ---------- portfolio ----------
+# ---------- strategy ----------
+
+st.markdown("#### Strategy")
+c1, c2, c3 = st.columns([2, 1, 1])
+strategy = c1.radio("Strategy", STRATEGIES, index=1, horizontal=True, label_visibility="collapsed")
+if strategy == "Lump sum":
+    frequency, allow_sell = "Monthly", False
+else:
+    frequency = c2.selectbox("Every", list(FREQUENCIES))
+    allow_sell = strategy == "VCA" and c3.toggle(
+        "Sell when above target", help="Off: when the portfolio is above target you just skip "
+                                       "that period. On: you sell the part above target.")
+st.caption(STRATEGY_HELP[strategy])
+
+# ---------- portfolio: total money box, fund table, summary ----------
 
 st.markdown("#### Portfolio")
-by_amount = st.radio(
-    "Enter the portfolio as", ["Weight %", "Amount (THB)"], horizontal=True, key="sim_mode",
-    help="Weight %: choose how to split, then the total amount under Strategy. "
-         "Amount (THB): type how much goes into each fund; the split comes from the amounts.",
-) == "Amount (THB)"
+label, default_total = {
+    "Lump sum": ("Total amount to invest (THB)", 100_000),
+    "DCA": ("Total amount each period (THB)", 5_000),
+    "VCA": ("Total target growth each period (THB)", 5_000),
+}[strategy]
+total_box = st.number_input(label, min_value=0, value=default_total, step=500, format="%d",
+                            key=f"sim_total_{strategy}",
+                            help="Funds entered as % get that share of this amount.")
 
-# Each way of entering has its own table, so switching back and forth keeps both.
-col = "Amount (THB)" if by_amount else "Weight %"
-table_key, editor_key = ("sim_portfolio_thb", "sim_editor_thb") if by_amount else ("sim_portfolio", "sim_editor")
-if table_key not in st.session_state:
-    a, b = (3_000, 2_000) if by_amount else (60, 40)
-    st.session_state[table_key] = pd.DataFrame([
-        {"Fund": by_symbol.get("ES-GQG"), col: a},
-        {"Fund": by_symbol.get("SCBSET"), col: b},
-    ]).dropna()
-value_column = (
-    st.column_config.NumberColumn(col, min_value=0, step=500, format="%d", required=True)
-    if by_amount else
-    st.column_config.NumberColumn(col, min_value=0, max_value=100, step=5, format="%d%%", required=True)
-)
+if "sim_portfolio" not in st.session_state:
+    st.session_state["sim_portfolio"] = pd.DataFrame([
+        {"Fund": by_symbol.get("ES-GQG"), "Amount (THB)": 0, "Weight %": 60.0},
+        {"Fund": by_symbol.get("SCBSET"), "Amount (THB)": 0, "Weight %": 40.0},
+    ]).dropna(subset=["Fund"])
 edited = st.data_editor(
-    st.session_state[table_key], key=editor_key, num_rows="dynamic", hide_index=True,
+    st.session_state["sim_portfolio"], key="sim_editor", num_rows="dynamic", hide_index=True,
     use_container_width=True,
     column_config={
         "Fund": st.column_config.SelectboxColumn("Fund (type to search)", options=options,
                                                  required=True, width="large"),
-        col: value_column,
+        "Amount (THB)": st.column_config.NumberColumn("Amount (THB)", min_value=0, step=500,
+                                                      format="%d", default=0),
+        "Weight %": st.column_config.NumberColumn("or Weight %", min_value=0, max_value=100,
+                                                  step=5, format="%g%%", default=0),
     },
 )
-how = ("Amount = THB per fund: invested once for Lump sum, each period for DCA, target growth "
-       "each period for VCA. " if by_amount else "")
-st.caption(f"{how}Add a row with the + under the table, delete with the checkbox and 🗑. "
-           f"Up to {MAX_FUNDS} funds.")
+st.caption("For each fund fill in **either** a THB amount **or** a weight % of the total above, "
+           "and leave the other at 0 (if both are filled, the THB amount is used). Add a row with the + under the table, "
+           f"delete with the checkbox and 🗑. Up to {MAX_FUNDS} funds.")
 
-rows = edited.dropna(subset=["Fund", col])
-rows = rows[rows[col] > 0]
-weights = rows.groupby(rows["Fund"].map(symbol_of), sort=False)[col].sum()  # merge duplicates
-if weights.empty:
-    st.info(f"Add at least one fund with {'an amount' if by_amount else 'a weight'} above 0.")
+rows = edited.dropna(subset=["Fund"]).copy()
+rows["Amount (THB)"] = pd.to_numeric(rows["Amount (THB)"], errors="coerce").fillna(0)
+rows["Weight %"] = pd.to_numeric(rows["Weight %"], errors="coerce").fillna(0)
+rows["by_amount"] = rows["Amount (THB)"] > 0
+rows["THB"] = rows["Amount (THB)"].where(rows["by_amount"], rows["Weight %"] / 100 * total_box)
+rows = rows[rows["THB"] > 0]
+rows["symbol"] = rows["Fund"].map(symbol_of)
+alloc = rows.groupby("symbol", sort=False).agg(  # merge duplicate funds
+    Fund=("Fund", "first"), THB=("THB", "sum"),
+    entered=("by_amount", lambda b: "THB" if b.all() else ("%" if not b.any() else "THB + %")))
+if alloc.empty:
+    st.info("Add at least one fund with a THB amount or a weight above 0.")
     st.stop()
-if len(weights) > MAX_FUNDS:
+if len(alloc) > MAX_FUNDS:
     st.warning(f"Only the first {MAX_FUNDS} funds are used.")
-    weights = weights.iloc[:MAX_FUNDS]
-total = weights.sum()
-split = ", ".join(f"{s} {w / total * 100:.1f}%" for s, w in weights.items())
-if by_amount:
-    if len(weights) > 1:
-        st.caption(f"Total {total:,.0f} THB, split {split}.")
-elif abs(total - 100) > 0.01:
-    st.info(f"Weights add up to {total:g}%, so they are scaled to 100% ({split}).")
-weights = weights / total * 100
+    alloc = alloc.iloc[:MAX_FUNDS]
+
+amount = alloc["THB"].sum()
+alloc["Share"] = alloc["THB"] / amount * 100
+summary = pd.concat([
+    alloc[["Fund", "entered", "THB", "Share"]],
+    pd.DataFrame([{"Fund": "Total invested", "entered": "", "THB": amount, "Share": 100.0}]),
+], ignore_index=True)
+st.dataframe(summary.style.format({"THB": "{:,.0f}", "Share": "{:.1f}%"}), hide_index=True,
+             use_container_width=True,
+             column_config={"Fund": "Investment summary", "entered": "Entered as",
+                            "THB": {"Lump sum": "Amount (THB)", "DCA": "Each period (THB)",
+                                    "VCA": "Target growth each period (THB)"}[strategy],
+                            "Share": "Share"})
+
+leftover = total_box - amount
+if not rows["by_amount"].all():  # the total box matters only when some fund uses %
+    if leftover > 0.5:
+        st.info(f"{leftover:,.0f} THB of the {total_box:,.0f} THB total is not given to any fund, "
+                f"so it is not invested. Simulating {amount:,.0f} THB.")
+    elif leftover < -0.5:
+        st.warning(f"The funds add up to {amount:,.0f} THB, which is {-leftover:,.0f} THB more "
+                   f"than the {total_box:,.0f} THB total. Simulating {amount:,.0f} THB.")
+else:
+    st.caption(f"Every fund has a THB amount, so the total box isn't used. "
+               f"Simulating {amount:,.0f} THB.")
+weights = alloc["THB"] / amount * 100
 
 with st.spinner("Loading fund history ..."):
     histories = {s: load_full_history(s, last_date) for s in weights.index}
@@ -111,40 +146,20 @@ first_day, last_day = prices.index[0].date(), prices.index[-1].date()
 default_start = max(first_day, (prices.index[-1] - pd.DateOffset(years=5)).date())
 youngest = max(histories, key=lambda s: histories[s]["navDate"].iloc[0])
 
-# ---------- strategy ----------
+# ---------- period and rebalancing ----------
 
-st.markdown("#### Strategy")
-c1, c2, c3 = st.columns([2, 1, 1])
-strategy = c1.radio("Strategy", STRATEGIES, index=1, horizontal=True, label_visibility="collapsed")
-start = c2.date_input("Start", value=default_start, min_value=first_day, max_value=last_day)
-end = c3.date_input("End", value=last_day, min_value=first_day, max_value=last_day)
-note = f"Data starts {first_day:%d %b %Y}"
-if len(weights) > 1:
-    note += f" (the youngest fund, {youngest}, launched then)"
-st.caption(f"{STRATEGY_HELP[strategy]} {note}.")
-
-c1, c2, c3, c4 = st.columns([2, 1, 1, 1])
-label = {"Lump sum": "Amount (THB)", "DCA": "Amount each period (THB)",
-         "VCA": "Target growth each period (THB)"}[strategy]
-if by_amount:
-    amount = total  # the sum of the amounts in the portfolio table
-    c1.text_input(label, value=f"{amount:,.0f}", disabled=True,
-                  help="Sum of the amounts in the portfolio table. Change them there.")
-elif strategy == "Lump sum":
-    amount = c1.number_input(label, min_value=100, value=100_000, step=1_000, format="%d")
-else:
-    amount = c1.number_input(label, min_value=100, value=5_000, step=500, format="%d")
-if strategy == "Lump sum":
-    frequency, allow_sell = "Monthly", False
-else:
-    frequency = c2.selectbox("Every", list(FREQUENCIES))
-    allow_sell = strategy == "VCA" and c4.toggle(
-        "Sell when above target", help="Off: when the portfolio is above target you just skip "
-                                       "that period. On: you sell the part above target.")
+st.markdown("#### Period")
+c1, c2, c3 = st.columns([1, 1, 1])
+start = c1.date_input("Start", value=default_start, min_value=first_day, max_value=last_day)
+end = c2.date_input("End", value=last_day, min_value=first_day, max_value=last_day)
 rebalance = "None"
 if len(weights) > 1:
     choices = REBALANCING if strategy != "Lump sum" else ["None", "Yearly"]
     rebalance = c3.selectbox("Rebalance", choices, help=REBALANCE_HELP)
+note = f"Data starts {first_day:%d %b %Y}"
+if len(weights) > 1:
+    note += f" (the youngest fund, {youngest}, launched then)"
+st.caption(note + ".")
 
 if start >= end:
     st.warning("Start date must be before the end date.")

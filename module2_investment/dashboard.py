@@ -199,9 +199,8 @@ with tab_detail:
         if st.button(f"📈 Simulate Lump sum / DCA / VCA in {sym}"):
             # Start the simulator with a portfolio of just this fund.
             st.session_state["sim_portfolio"] = pd.DataFrame(
-                [{"Fund": fund_label(sym, last["nameEn"]), "Weight %": 100}])
+                [{"Fund": fund_label(sym, last["nameEn"]), "Amount (THB)": 0, "Weight %": 100.0}])
             st.session_state.pop("sim_editor", None)  # forget edits to the previous portfolio
-            st.session_state["sim_mode"] = "Weight %"
             st.switch_page("module2_investment/simulator.py")
 
         c1, c2 = st.columns(2)
