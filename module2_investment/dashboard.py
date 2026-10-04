@@ -213,8 +213,20 @@ with tab_detail:
                    "A dash means the fund is younger than the period.")
 
         # Price chart
-        show = st.radio("Chart", ["Growth of 10,000 THB", "NAV per unit"], horizontal=True)
+        c_show, c_amount, _ = st.columns([2, 1, 1])
+        show = c_show.radio("Chart", ["Growth of an investment", "NAV per unit"], horizontal=True)
         has_dividends = hist["dividendValue"].fillna(0).gt(0).any()
+        if show != "NAV per unit":
+            amount = c_amount.number_input("Amount invested at launch (THB)", min_value=100,
+                                           value=10_000, step=1_000, format="%d")
+            final = hist["growth"].iloc[-1] * amount
+            line = (f"**{amount:,.0f} THB** invested on {hist['navDate'].iloc[0]:%d %b %Y} would be worth "
+                    f"**{final:,.0f} THB** on {last['navDate']:%d %b %Y} "
+                    f"({signed((final / amount - 1) * 100)}, dividends reinvested)")
+            if has_dividends:
+                price_final = hist["navPerUnit"].iloc[-1] / hist["navPerUnit"].iloc[0] * amount
+                line += f". Without the dividends: {price_final:,.0f} THB."
+            st.markdown(line)
         fig = go.Figure()
         if show == "NAV per unit":
             fig.add_trace(go.Scatter(
@@ -224,12 +236,12 @@ with tab_detail:
             ))
         else:
             fig.add_trace(go.Scatter(
-                x=hist["navDate"], y=hist["growth"] * 10_000, name="Dividends reinvested",
+                x=hist["navDate"], y=hist["growth"] * amount, name="Dividends reinvested",
                 line=dict(width=2, color=SERIES_COLORS[0]),
                 hovertemplate="%{y:,.0f} THB<extra>Dividends reinvested</extra>",
             ))
             if has_dividends:
-                price_only = hist["navPerUnit"] / hist["navPerUnit"].iloc[0] * 10_000
+                price_only = hist["navPerUnit"] / hist["navPerUnit"].iloc[0] * amount
                 fig.add_trace(go.Scatter(
                     x=hist["navDate"], y=price_only, name="Price only",
                     line=dict(width=2, color=SERIES_COLORS[1]),
