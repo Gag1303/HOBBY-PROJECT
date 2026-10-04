@@ -15,7 +15,7 @@ project calls that API directly:
 |---|---|
 | `mutual-fund/last-business-date` | latest date with NAV data |
 | `fund-nav/all?fromDate=DD/MM/YYYY&toDate=DD/MM/YYYY` | NAV of all funds (max ~1 month range) |
-| `fund-nav/{SYMBOL}?fromDate=...&toDate=...` | NAV history of one fund |
+| `fund-nav/{SYMBOL}?fromDate=...&toDate=...` | NAV history of one fund (any range, back to launch) |
 | `mutual-fund/amc/list` | asset management companies |
 
 ### Setup
@@ -30,8 +30,11 @@ streamlit run app.py
 ```
 It opens at http://localhost:8501 with three tabs:
 - **Market overview** – every fund's latest NAV, search/filter, biggest movers, CSV download
-- **Fund history & compare** – up to 5 funds on one "growth of 100 THB" chart, with
-  total/annualized return, volatility and max drawdown for 1M–5Y
+- **Fund detail** – one fund's full history since launch: factsheet-style returns
+  (YTD, 3M … 10Y, since launch), growth chart, return by calendar year, drop from previous
+  high, and dividend history
+- **Compare funds** – up to 5 funds on one "growth of 100 THB" chart, with
+  total/annualized return, volatility and max drawdown for 1M to Max
 - **Fund companies** – fund size and number of funds per asset management company
 
 ### Command-line usage
@@ -57,6 +60,8 @@ CSV files are saved with UTF-8 BOM so Thai names display correctly in Excel.
 - thaimutualfund.com is run by AIMC. Its terms say the data is for information/education and
   **may not be used for commercial purposes**. Keep this project personal, and use official
   sources (e.g. the SEC Thailand Open API) for any professional or client work.
-- History return shown is NAV price change only. Dividends are not included.
+- In the dashboard, returns include dividends reinvested (total return), like official
+  factsheets. The command-line `history` summary is NAV price change only.
+- Renamed funds (e.g. TMB → Eastspring "ES-") keep their full history under the new symbol.
 - Many funds (especially foreign-investing ones) publish NAV 1–3 days late. "Latest" therefore
   means each fund's newest NAV within the last 10 days. Check the NAV date column.

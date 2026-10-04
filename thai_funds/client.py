@@ -6,8 +6,7 @@ This module calls the same endpoints directly so we get clean JSON
 instead of scraping HTML.
 """
 
-import time
-from datetime import date, timedelta
+from datetime import date
 from urllib.parse import quote
 
 import requests
@@ -21,11 +20,8 @@ HEADERS = {
     "Referer": "https://weblink.settrade.com/settrade/aimc/search-nav",
 }
 
-# The website only allows a range of about 1 month per request, so we keep to that.
-MAX_RANGE_DAYS = 30
-
-# Pause between requests so we don't hammer the server.
-POLITE_DELAY_SECONDS = 1.0
+# Earliest date to ask for when we want a fund's whole history (Thai fund data starts ~1990s).
+EARLIEST_DATE = date(1990, 1, 1)
 
 
 def _fmt(d: date) -> str:
@@ -55,20 +51,12 @@ def list_investment_policies() -> list[str]:
 
 
 def nav_all_funds(from_date: date, to_date: date) -> list[dict]:
-    """NAV of every fund between two dates (max ~1 month)."""
+    """NAV of every fund between two dates. The website limits this to ~1 month."""
     params = {"fromDate": _fmt(from_date), "toDate": _fmt(to_date)}
     return _get("fund-nav/all", params)["fundNavs"]
 
 
-def nav_history(symbol: str, from_date: date, to_date: date) -> list[dict]:
-    """NAV history of one fund. Long ranges are split into ~1 month chunks."""
-    rows = []
-    start = from_date
-    while start <= to_date:
-        end = min(start + timedelta(days=MAX_RANGE_DAYS - 1), to_date)
-        params = {"fromDate": _fmt(start), "toDate": _fmt(end)}
-        rows.extend(_get(f"fund-nav/{quote(symbol, safe='()')}", params)["fundNavs"])
-        start = end + timedelta(days=1)
-        if start <= to_date:
-            time.sleep(POLITE_DELAY_SECONDS)
-    return rows
+def nav_history(symbol: str, from_date: date = EARLIEST_DATE, to_date: date | None = None) -> list[dict]:
+    """NAV history of one fund. One request can cover the fund's whole life."""
+    params = {"fromDate": _fmt(from_date), "toDate": _fmt(to_date or date.today())}
+    return _get(f"fund-nav/{quote(symbol, safe='()')}", params)["fundNavs"]

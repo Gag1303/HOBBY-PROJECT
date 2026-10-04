@@ -6,7 +6,7 @@ Run it with:
 and only runs on this computer.
 """
 
-from datetime import date, timedelta
+from datetime import date
 
 import pandas as pd
 import plotly.express as px
@@ -14,7 +14,10 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from thai_funds import client
-from thai_funds.tables import amc_table, fund_stats, latest_nav, to_dataframe
+from thai_funds.tables import (
+    add_growth, amc_table, calendar_year_returns, dividends, drawdown, fund_stats, latest_nav,
+    period_returns, to_dataframe,
+)
 
 st.set_page_config(page_title="Thai Fund Dashboard", page_icon="📈", layout="wide")
 
@@ -24,7 +27,8 @@ SERIES_COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"]
 UP_COLOR, DOWN_COLOR = "#2a78d6", "#e34948"
 MAX_COMPARE = 5
 
-PERIODS = {"1M": 30, "3M": 91, "6M": 182, "YTD": None, "1Y": 365, "3Y": 365 * 3, "5Y": 365 * 5}
+# Months back for each period button. 0 = year to date, None = whole history.
+PERIODS = {"1M": 1, "3M": 3, "6M": 6, "YTD": 0, "1Y": 12, "3Y": 36, "5Y": 60, "10Y": 120, "Max": None}
 
 
 # ---------- data loading (cached so we don't call the API on every click) ----------
@@ -45,9 +49,18 @@ def load_market(day: date) -> pd.DataFrame:
 
 
 @st.cache_data(ttl=3600 * 6, show_spinner=False)
-def load_history(symbol: str, from_date: date, to_date: date) -> pd.DataFrame:
-    df = to_dataframe(client.nav_history(symbol, from_date, to_date), load_amcs())
-    return df.drop_duplicates(subset=["navDate"]) if not df.empty else df
+def load_full_history(symbol: str, to_date: date) -> pd.DataFrame:
+    """Whole NAV history of a fund (one fast request), with the dividends-reinvested growth."""
+    df = to_dataframe(client.nav_history(symbol, to_date=to_date), load_amcs())
+    return add_growth(df.drop_duplicates(subset=["navDate"])) if not df.empty else df
+
+
+def period_start(end: pd.Timestamp, months: int | None) -> pd.Timestamp | None:
+    if months is None:
+        return None
+    if months == 0:
+        return pd.Timestamp(end.year - 1, 12, 31)
+    return end - pd.DateOffset(months=months)
 
 
 def csv_bytes(df: pd.DataFrame) -> bytes:
@@ -85,7 +98,9 @@ if market.empty:
     st.warning(f"No NAV data for {day:%d %b %Y} (weekend or holiday?). Pick another date.")
     st.stop()
 
-tab_market, tab_history, tab_amc = st.tabs(["🏦 Market overview", "📊 Fund history & compare", "🏢 Fund companies"])
+tab_market, tab_detail, tab_history, tab_amc = st.tabs(
+    ["🏦 Market overview", "🔎 Fund detail", "📊 Compare funds", "🏢 Fund companies"]
+)
 
 
 # ---------- tab 1: market overview ----------
@@ -165,10 +180,126 @@ with tab_market:
         col.plotly_chart(fig, use_container_width=True)
 
 
-# ---------- tab 2: fund history & compare ----------
+# ---------- tab 2: one fund in detail ----------
+
+with tab_detail:
+    funds = market.sort_values("symbol")
+    labels = dict(zip(funds["symbol"], funds["symbol"] + "  ·  " + funds[name_col].fillna("")))
+    choices = list(labels)
+    sym = st.selectbox("Fund (type to search)", choices, format_func=labels.get,
+                       index=choices.index("ES-GQG") if "ES-GQG" in labels else 0)
+
+    with st.spinner(f"Loading full history of {sym} ..."):
+        hist = load_full_history(sym, day)
+
+    if hist.empty:
+        st.warning("No history found for this fund.")
+    else:
+        last = hist.iloc[-1]
+        st.subheader(sym)
+        st.caption(f"{last['nameEn']}  ·  {last['nameTh']}  ·  {last['amcNameEn']}")
+
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric(f"NAV/unit · {last['navDate']:%d %b %Y}", f"{last['navPerUnit']:.4f}",
+                  signed(last["changePct"]))
+        m2.metric("Fund size", f"{last['nav'] / 1e6:,.0f} M THB" if pd.notna(last["nav"]) else "–")
+        m3.metric("Data since", f"{hist['navDate'].iloc[0]:%d %b %Y}",
+                  help="First NAV in the data. Usually the fund's launch date.")
+        m4.metric("Type", last["projectType"] or "–")
+
+        # Factsheet-style performance table
+        st.markdown("#### Performance · dividends reinvested")
+        perf = period_returns(hist).set_index("Period").T
+        perf.index = ["Return", "Per year (annualized)"]
+        st.dataframe(perf.style.format(signed, na_rep="–"), use_container_width=True)
+        st.caption("Periods of 1 year or more are also shown per year, as on official factsheets. "
+                   "A dash means the fund is younger than the period.")
+
+        # Price chart
+        show = st.radio("Chart", ["Growth of 10,000 THB", "NAV per unit"], horizontal=True)
+        has_dividends = hist["dividendValue"].fillna(0).gt(0).any()
+        fig = go.Figure()
+        if show == "NAV per unit":
+            fig.add_trace(go.Scatter(
+                x=hist["navDate"], y=hist["navPerUnit"], name="NAV per unit",
+                line=dict(width=2, color=SERIES_COLORS[0]),
+                hovertemplate="%{x|%d %b %Y}<br>NAV %{y:.4f}<extra></extra>",
+            ))
+        else:
+            fig.add_trace(go.Scatter(
+                x=hist["navDate"], y=hist["growth"] * 10_000, name="Dividends reinvested",
+                line=dict(width=2, color=SERIES_COLORS[0]),
+                hovertemplate="%{y:,.0f} THB<extra>Dividends reinvested</extra>",
+            ))
+            if has_dividends:
+                price_only = hist["navPerUnit"] / hist["navPerUnit"].iloc[0] * 10_000
+                fig.add_trace(go.Scatter(
+                    x=hist["navDate"], y=price_only, name="Price only",
+                    line=dict(width=2, color=SERIES_COLORS[1]),
+                    hovertemplate="%{y:,.0f} THB<extra>Price only</extra>",
+                ))
+        fig.update_layout(
+            height=420, margin=dict(l=0, r=0, t=30, b=0), hovermode="x unified",
+            showlegend=bool(has_dividends and show != "NAV per unit"),
+            legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom"),
+            xaxis=dict(rangeselector=dict(buttons=[
+                dict(count=1, label="1Y", step="year", stepmode="backward"),
+                dict(count=3, label="3Y", step="year", stepmode="backward"),
+                dict(count=5, label="5Y", step="year", stepmode="backward"),
+                dict(count=10, label="10Y", step="year", stepmode="backward"),
+                dict(label="All", step="all"),
+            ])),
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+        c1, c2 = st.columns(2)
+
+        # Calendar-year returns
+        years = calendar_year_returns(hist)
+        year_labels = [f"{y}*" if note else str(y) for y, note in zip(years["Year"], years["Note"])]
+        fig = go.Figure(go.Bar(
+            x=year_labels, y=years["Return %"],
+            marker_color=[UP_COLOR if v >= 0 else DOWN_COLOR for v in years["Return %"]],
+            text=[signed(v, 1) for v in years["Return %"]], textposition="outside", cliponaxis=False,
+            customdata=years["Note"],
+            hovertemplate="<b>%{x}</b> %{y:+.2f}%<br>%{customdata}<extra></extra>",
+        ))
+        fig.update_layout(title="Return by calendar year", height=360, margin=dict(l=0, r=0, t=40, b=0),
+                          yaxis=dict(ticksuffix="%"), xaxis=dict(type="category"))
+        c1.plotly_chart(fig, use_container_width=True)
+        c1.caption("* partial year (from launch, or year to date)")
+
+        # Drawdown
+        dd = drawdown(hist) * 100
+        fig = go.Figure(go.Scatter(
+            x=dd.index, y=dd.values, fill="tozeroy", line=dict(width=1.5, color=DOWN_COLOR),
+            hovertemplate="%{x|%d %b %Y}<br>%{y:.1f}% below previous high<extra></extra>",
+        ))
+        fig.update_layout(title=f"Drop from previous high · worst {dd.min():.1f}%", height=360,
+                          margin=dict(l=0, r=0, t=40, b=0), yaxis=dict(ticksuffix="%"))
+        c2.plotly_chart(fig, use_container_width=True)
+        c2.caption("Shows how deep and how long the losses were. 0% = at a new high.")
+
+        # Dividends
+        divs = dividends(hist)
+        if not divs.empty:
+            st.markdown(f"#### Dividends · {len(divs)} payments, "
+                        f"{divs['dividendValue'].sum():.2f} THB/unit in total")
+            st.dataframe(divs, hide_index=True, use_container_width=True, column_config={
+                "navDate": st.column_config.DateColumn("XD date", format="DD MMM YYYY"),
+                "dividendDate": st.column_config.DateColumn("Pay date", format="DD MMM YYYY"),
+                "dividendValue": st.column_config.NumberColumn("THB per unit", format="%.4f"),
+                "yieldPct": st.column_config.NumberColumn("% of NAV", format="%.2f%%"),
+            })
+
+        st.download_button("⬇️ Download full history (CSV)", csv_bytes(hist),
+                           file_name=f"{sym}_full_history_{day}.csv", mime="text/csv")
+
+
+# ---------- tab 3: compare funds ----------
 
 with tab_history:
-    st.subheader("Fund history & comparison")
+    st.subheader("Compare funds")
     symbols = sorted(market["symbol"].unique())
     default = [s for s in ["K-USA-A(A)", "SCBSET"] if s in symbols]
 
@@ -177,27 +308,29 @@ with tab_history:
                             max_selections=MAX_COMPARE)
     period = c2.radio("Period", list(PERIODS), index=list(PERIODS).index("1Y"), horizontal=True)
 
-    to_date = day
-    from_date = date(to_date.year, 1, 1) if period == "YTD" else to_date - timedelta(days=PERIODS[period])
-
     if not picked:
         st.info("Pick one or more funds above.")
     else:
         histories = {}
-        progress = st.progress(0.0, text="Loading history ...")
-        for i, sym in enumerate(picked):
-            progress.progress(i / len(picked), text=f"Loading {sym} ({from_date} → {to_date}) ...")
-            histories[sym] = load_history(sym, from_date, to_date)
-        progress.empty()
-        histories = {s: h for s, h in histories.items() if not h.empty}
+        with st.spinner("Loading history ..."):
+            for sym in picked:
+                h = load_full_history(sym, day)
+                if h.empty:
+                    continue
+                start = period_start(h["navDate"].iloc[-1], PERIODS[period])
+                if start is not None:
+                    # Measure from the last NAV on/before the start date (factsheet convention).
+                    before = h.loc[h["navDate"] <= start, "navDate"]
+                    h = h[h["navDate"] >= before.iloc[-1]] if len(before) else h
+                histories[sym] = h
+        histories = {s: h for s, h in histories.items() if len(h) > 1}
         if not histories:
             st.warning("No history found for these funds in this period.")
         else:
             # Rebase every fund to 100 at its first date so different NAV levels share one axis.
             fig = go.Figure()
             for i, (sym, h) in enumerate(histories.items()):
-                h = h.sort_values("navDate")
-                indexed = h["navPerUnit"] / h["navPerUnit"].iloc[0] * 100
+                indexed = h["growth"] / h["growth"].iloc[0] * 100
                 fig.add_trace(go.Scatter(
                     x=h["navDate"], y=indexed, name=sym, mode="lines",
                     line=dict(width=2, color=SERIES_COLORS[i % len(SERIES_COLORS)]),
@@ -229,15 +362,15 @@ with tab_history:
                     "Days of data": st.column_config.NumberColumn(format="%d"),
                 },
             )
-            st.caption("Returns use NAV price only. Dividends are not included, so funds that "
-                       "pay dividends will look worse than they really are.")
+            st.caption("Returns include dividends reinvested (total return). If a fund is younger "
+                       "than the period, its line starts at its launch date.")
 
             all_hist = pd.concat(histories.values(), ignore_index=True)
             st.download_button("⬇️ Download history (CSV)", csv_bytes(all_hist),
-                               file_name=f"history_{period}_{to_date}.csv", mime="text/csv")
+                               file_name=f"history_{period}_{day}.csv", mime="text/csv")
 
 
-# ---------- tab 3: fund companies ----------
+# ---------- tab 4: fund companies ----------
 
 with tab_amc:
     st.subheader(f"Fund companies · as of {day:%d %b %Y}")
