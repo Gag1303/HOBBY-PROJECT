@@ -1,0 +1,268 @@
+"""Thai Fund Dashboard - a local web app for exploring Thai mutual fund NAV data.
+
+Run it with:
+    streamlit run app.py
+(or double-click run_app.bat). It opens in your browser at http://localhost:8501
+and only runs on this computer.
+"""
+
+from datetime import date, timedelta
+
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+import streamlit as st
+
+from thai_funds import client
+from thai_funds.tables import amc_table, fund_stats, latest_nav, to_dataframe
+
+st.set_page_config(page_title="Thai Fund Dashboard", page_icon="📈", layout="wide")
+
+# Colors (validated colorblind-safe order). Up/down use blue/red rather than color alone:
+# numbers always carry a +/- sign too.
+SERIES_COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"]
+UP_COLOR, DOWN_COLOR = "#2a78d6", "#e34948"
+MAX_COMPARE = 5
+
+PERIODS = {"1M": 30, "3M": 91, "6M": 182, "YTD": None, "1Y": 365, "3Y": 365 * 3, "5Y": 365 * 5}
+
+
+# ---------- data loading (cached so we don't call the API on every click) ----------
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def load_last_date() -> date:
+    return client.last_business_date()
+
+
+@st.cache_data(ttl=3600 * 24, show_spinner=False)
+def load_amcs() -> pd.DataFrame:
+    return amc_table()
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def load_market(day: date) -> pd.DataFrame:
+    return latest_nav(day, amcs=load_amcs())
+
+
+@st.cache_data(ttl=3600 * 6, show_spinner=False)
+def load_history(symbol: str, from_date: date, to_date: date) -> pd.DataFrame:
+    df = to_dataframe(client.nav_history(symbol, from_date, to_date), load_amcs())
+    return df.drop_duplicates(subset=["navDate"]) if not df.empty else df
+
+
+def csv_bytes(df: pd.DataFrame) -> bytes:
+    return df.to_csv(index=False).encode("utf-8-sig")  # BOM so Excel shows Thai text
+
+
+def signed(x: float, digits: int = 2) -> str:
+    return "–" if pd.isna(x) else f"{x:+.{digits}f}%"
+
+
+# ---------- sidebar ----------
+
+st.sidebar.title("📈 Thai Fund Dashboard")
+try:
+    last_date = load_last_date()
+except Exception as e:  # network down, API changed, ...
+    st.error(f"Could not reach the data source: {e}")
+    st.stop()
+
+day = st.sidebar.date_input("NAV date", value=last_date, max_value=last_date,
+                            help="Weekends/holidays have no data.")
+name_col = "nameTh" if st.sidebar.toggle("Show Thai fund names") else "nameEn"
+if st.sidebar.button("🔄 Refresh data"):
+    st.cache_data.clear()
+    st.rerun()
+st.sidebar.caption(
+    "Data: thaimutualfund.com (AIMC) via api.settrade.com. "
+    "For personal/educational use only, not for commercial use."
+)
+
+with st.spinner(f"Loading latest NAV of all funds as of {day} ..."):
+    market = load_market(day)
+
+if market.empty:
+    st.warning(f"No NAV data for {day:%d %b %Y} (weekend or holiday?). Pick another date.")
+    st.stop()
+
+tab_market, tab_history, tab_amc = st.tabs(["🏦 Market overview", "📊 Fund history & compare", "🏢 Fund companies"])
+
+
+# ---------- tab 1: market overview ----------
+
+with tab_market:
+    st.subheader(f"All funds · latest NAV as of {day:%d %b %Y}")
+    st.caption("Many funds (especially foreign-investing ones) report NAV 1-3 days late, so each "
+               "fund shows its most recent NAV. Check the NAV date column.")
+
+    changed = market["changePct"].dropna()
+    k1, k2, k3, k4 = st.columns(4)
+    k1.metric("Funds", f"{len(market):,}")
+    k2.metric("Up (last change)", f"{(changed > 0).sum():,}")
+    k3.metric("Down (last change)", f"{(changed < 0).sum():,}")
+    k4.metric("Median change", signed(changed.median()))
+
+    f1, f2, f3 = st.columns([2, 2, 1])
+    search = f1.text_input("Search symbol or name", placeholder="e.g. K-USA, SET50, ทองคำ")
+    amc_pick = f2.multiselect("Fund company", sorted(market["amcCode"].dropna().unique()))
+    type_pick = f3.multiselect("Type", sorted(market["projectType"].dropna().unique()))
+
+    view = market
+    if search:
+        s = search.lower()
+        view = view[view["symbol"].str.lower().str.contains(s, regex=False)
+                    | view["nameEn"].fillna("").str.lower().str.contains(s, regex=False)
+                    | view["nameTh"].fillna("").str.contains(search, regex=False)]
+    if amc_pick:
+        view = view[view["amcCode"].isin(amc_pick)]
+    if type_pick:
+        view = view[view["projectType"].isin(type_pick)]
+
+    table = view[["symbol", name_col, "navDate", "amcCode", "navPerUnit", "change", "changePct",
+                  "nav", "buyPrice", "sellPrice", "projectType"]].copy()
+    table["nav"] = table["nav"] / 1e6
+    st.dataframe(
+        table,
+        hide_index=True,
+        use_container_width=True,
+        height=420,
+        column_config={
+            "symbol": "Symbol",
+            name_col: "Fund name",
+            "navDate": st.column_config.DateColumn("NAV date", format="DD MMM"),
+            "amcCode": "Company",
+            "navPerUnit": st.column_config.NumberColumn("NAV/unit", format="%.4f"),
+            "change": st.column_config.NumberColumn("Change", format="%+.4f"),
+            "changePct": st.column_config.NumberColumn("Change %", format="%+.2f%%"),
+            "nav": st.column_config.NumberColumn("Fund size (M THB)", format="%,.1f"),
+            "buyPrice": st.column_config.NumberColumn("Buy", format="%.4f"),
+            "sellPrice": st.column_config.NumberColumn("Sell", format="%.4f"),
+            "projectType": "Type",
+        },
+    )
+    st.download_button("⬇️ Download this table (CSV)", csv_bytes(view),
+                       file_name=f"nav_{day}.csv", mime="text/csv")
+
+    st.markdown("#### Biggest movers")
+    movers = view.dropna(subset=["changePct"]).sort_values("changePct")
+    g1, g2 = st.columns(2)
+    for col, title, rows, color in [
+        (g1, "Top 10 gainers", movers.tail(10), UP_COLOR),
+        (g2, "Top 10 losers", movers.head(10).iloc[::-1], DOWN_COLOR),
+    ]:
+        if rows.empty:
+            col.info("No data for this filter.")
+            continue
+        fig = go.Figure(go.Bar(
+            x=rows["changePct"], y=rows["symbol"], orientation="h", marker_color=color,
+            text=[signed(v) for v in rows["changePct"]], textposition="outside", cliponaxis=False,
+            customdata=rows[[name_col, "navPerUnit", "navDate"]],
+            hovertemplate="<b>%{y}</b><br>%{customdata[0]}<br>NAV %{customdata[1]:.4f} (%{customdata[2]|%d %b})"
+                          "<br>Change %{x:+.2f}%<extra></extra>",
+        ))
+        fig.update_layout(title=title, height=380, margin=dict(l=0, r=40, t=40, b=0),
+                          xaxis=dict(ticksuffix="%", zeroline=True), yaxis=dict(autorange="reversed"))
+        col.plotly_chart(fig, use_container_width=True)
+
+
+# ---------- tab 2: fund history & compare ----------
+
+with tab_history:
+    st.subheader("Fund history & comparison")
+    symbols = sorted(market["symbol"].unique())
+    default = [s for s in ["K-USA-A(A)", "SCBSET"] if s in symbols]
+
+    c1, c2 = st.columns([3, 2])
+    picked = c1.multiselect(f"Funds to compare (max {MAX_COMPARE})", symbols, default=default,
+                            max_selections=MAX_COMPARE)
+    period = c2.radio("Period", list(PERIODS), index=list(PERIODS).index("1Y"), horizontal=True)
+
+    to_date = day
+    from_date = date(to_date.year, 1, 1) if period == "YTD" else to_date - timedelta(days=PERIODS[period])
+
+    if not picked:
+        st.info("Pick one or more funds above.")
+    else:
+        histories = {}
+        progress = st.progress(0.0, text="Loading history ...")
+        for i, sym in enumerate(picked):
+            progress.progress(i / len(picked), text=f"Loading {sym} ({from_date} → {to_date}) ...")
+            histories[sym] = load_history(sym, from_date, to_date)
+        progress.empty()
+        histories = {s: h for s, h in histories.items() if not h.empty}
+        if not histories:
+            st.warning("No history found for these funds in this period.")
+        else:
+            # Rebase every fund to 100 at its first date so different NAV levels share one axis.
+            fig = go.Figure()
+            for i, (sym, h) in enumerate(histories.items()):
+                h = h.sort_values("navDate")
+                indexed = h["navPerUnit"] / h["navPerUnit"].iloc[0] * 100
+                fig.add_trace(go.Scatter(
+                    x=h["navDate"], y=indexed, name=sym, mode="lines",
+                    line=dict(width=2, color=SERIES_COLORS[i % len(SERIES_COLORS)]),
+                    customdata=h["navPerUnit"],
+                    hovertemplate=f"<b>{sym}</b> %{{y:.1f}} (NAV %{{customdata:.4f}})<extra></extra>",
+                ))
+            fig.add_hline(y=100, line_width=1, line_dash="dot", line_color="gray")
+            fig.update_layout(
+                title=f"Growth of 100 THB · {period}", height=450, hovermode="x unified",
+                margin=dict(l=0, r=0, t=50, b=0), yaxis_title="Value (start = 100)",
+                legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom"),
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+            stats = pd.DataFrame({s: fund_stats(h) for s, h in histories.items()}).T
+            stats.insert(0, "Fund name", [histories[s][name_col].iloc[-1] for s in stats.index])
+            st.dataframe(
+                stats, use_container_width=True,
+                column_config={
+                    "Start NAV": st.column_config.NumberColumn(format="%.4f"),
+                    "Latest NAV": st.column_config.NumberColumn(format="%.4f"),
+                    "Total return %": st.column_config.NumberColumn(format="%+.2f%%"),
+                    "Annualized return %": st.column_config.NumberColumn(
+                        format="%+.2f%%", help="Only shown for periods of about 1 year or more"),
+                    "Volatility % (yearly)": st.column_config.NumberColumn(
+                        format="%.2f%%", help="How much the price swings. Higher = riskier."),
+                    "Max drawdown %": st.column_config.NumberColumn(
+                        format="%.2f%%", help="Worst fall from a peak during the period."),
+                    "Days of data": st.column_config.NumberColumn(format="%d"),
+                },
+            )
+            st.caption("Returns use NAV price only. Dividends are not included, so funds that "
+                       "pay dividends will look worse than they really are.")
+
+            all_hist = pd.concat(histories.values(), ignore_index=True)
+            st.download_button("⬇️ Download history (CSV)", csv_bytes(all_hist),
+                               file_name=f"history_{period}_{to_date}.csv", mime="text/csv")
+
+
+# ---------- tab 3: fund companies ----------
+
+with tab_amc:
+    st.subheader(f"Fund companies · as of {day:%d %b %Y}")
+    by_amc = (market.groupby("amcCode", dropna=False)
+              .agg(funds=("symbol", "count"), aum=("nav", "sum"), median_change=("changePct", "median"))
+              .reset_index().sort_values("aum", ascending=False))
+    by_amc["aum"] = by_amc["aum"] / 1e9
+
+    top = by_amc.head(15).iloc[::-1]
+    fig = px.bar(top, x="aum", y="amcCode", orientation="h", text="aum",
+                 labels={"aum": "Total fund size (billion THB)", "amcCode": ""},
+                 color_discrete_sequence=[SERIES_COLORS[0]])
+    fig.update_traces(texttemplate="%{text:,.0f}", textposition="outside", cliponaxis=False,
+                      hovertemplate="<b>%{y}</b><br>%{x:,.1f} billion THB<extra></extra>")
+    fig.update_layout(title="Top 15 companies by total fund size", height=480,
+                      margin=dict(l=0, r=40, t=40, b=0))
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.dataframe(
+        by_amc, hide_index=True, use_container_width=True,
+        column_config={
+            "amcCode": "Company",
+            "funds": st.column_config.NumberColumn("Number of funds", format="%d"),
+            "aum": st.column_config.NumberColumn("Total size (B THB)", format="%,.1f"),
+            "median_change": st.column_config.NumberColumn("Median last change", format="%+.2f%%"),
+        },
+    )
+    st.caption("Fund size is the sum of NAV across all share classes the company manages.")

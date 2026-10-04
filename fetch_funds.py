@@ -17,33 +17,9 @@ from pathlib import Path
 import pandas as pd
 
 from thai_funds import client
+from thai_funds.tables import latest_nav, to_dataframe
 
 DATA_DIR = Path(__file__).parent / "data"
-
-# Columns we keep, in a readable order.
-COLUMNS = [
-    "navDate", "symbol", "nameEn", "nameTh", "amcCode", "amcNameEn",
-    "navPerUnit", "priorNavPerUnit", "change", "changePct", "nav",
-    "buyPrice", "sellPrice", "dividendValue", "dividendDate", "projectType",
-]
-
-
-def to_dataframe(rows: list[dict]) -> pd.DataFrame:
-    """Turn API rows into a clean table with AMC names and % change."""
-    df = pd.DataFrame(rows)
-    if df.empty:
-        return df
-
-    amcs = pd.DataFrame(client.list_amcs()).rename(
-        columns={"id": "amcId", "code": "amcCode", "nameEn": "amcNameEn", "nameTh": "amcNameTh"}
-    )
-    df = df.merge(amcs[["amcId", "amcCode", "amcNameEn"]], on="amcId", how="left")
-
-    df["navDate"] = pd.to_datetime(df["navDate"].str[:10])
-    df["dividendDate"] = pd.to_datetime(df["dividendDate"].str[:10])
-    df["change"] = df["change"].round(4)
-    df["changePct"] = (df["change"] / df["priorNavPerUnit"] * 100).round(2)
-    return df[COLUMNS].sort_values(["navDate", "symbol"]).reset_index(drop=True)
 
 
 def save(df: pd.DataFrame, name: str, excel: bool) -> None:
@@ -60,15 +36,15 @@ def save(df: pd.DataFrame, name: str, excel: bool) -> None:
 
 def cmd_latest(args):
     day = args.date or client.last_business_date()
-    print(f"Fetching NAV of all funds on {day} ...")
-    df = to_dataframe(client.nav_all_funds(day, day))
+    print(f"Fetching latest NAV of all funds as of {day} ...")
+    df = latest_nav(day)
     save(df, f"nav_all_{day}", args.excel)
 
     if not df.empty:
         top = df.dropna(subset=["changePct"]).sort_values("changePct", ascending=False)
-        cols = ["symbol", "navPerUnit", "changePct"]
-        print("\nTop 5 gainers today:\n", top.head(5)[cols].to_string(index=False))
-        print("\nTop 5 losers today:\n", top.tail(5)[cols].to_string(index=False))
+        cols = ["symbol", "navDate", "navPerUnit", "changePct"]
+        print("\nTop 5 gainers (latest day of each fund):\n", top.head(5)[cols].to_string(index=False))
+        print("\nTop 5 losers (latest day of each fund):\n", top.tail(5)[cols].to_string(index=False))
 
 
 def cmd_history(args):
@@ -99,7 +75,7 @@ def main():
     parser = argparse.ArgumentParser(description="Download Thai mutual fund NAV data.")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p = sub.add_parser("latest", help="NAV of all funds for one day")
+    p = sub.add_parser("latest", help="latest NAV of every fund (as of a date)")
     p.add_argument("--date", type=date.fromisoformat, help="YYYY-MM-DD (default: latest)")
     p.set_defaults(func=cmd_latest)
 
