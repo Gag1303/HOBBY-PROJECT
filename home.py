@@ -13,6 +13,9 @@ with st.container(border=True):
     st.markdown(t("**Tools** · for every module"))
     st.page_link("calculators/financial_calculator.py",
                  label=t("Financial calculator: TVM, NPV / IRR, interest rate conversion"), icon="🧮")
+    st.page_link("career/guide.py",
+                 label=t("CFP career guide: path to CFP, ethics, renewal, working abroad, TFPA documents"),
+                 icon="🎓")
 
 for i, m in enumerate(MODULES):
     if i % 3 == 0:

@@ -10,35 +10,18 @@ refresh and an app restart. (This app runs on one computer for one person, so a 
 simplest place to remember it.)
 """
 
-import json
-from pathlib import Path
-
 import streamlit as st
 
 from i18n_th import TH
+from user_settings import load_settings, save_setting
 
-SETTINGS_FILE = Path(__file__).parent / "user_settings.json"
 LANGUAGES = {"en": "English", "th": "ไทย"}
-
-
-def _load_settings() -> dict:
-    try:
-        return json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return {}
-
-
-def _save_settings(settings: dict) -> None:
-    try:
-        SETTINGS_FILE.write_text(json.dumps(settings, ensure_ascii=False, indent=2), encoding="utf-8")
-    except OSError:
-        pass  # can't save: the choice still works until the browser tab is closed
 
 
 def lang() -> str:
     """Current language code: 'en' or 'th'."""
     if "lang" not in st.session_state:
-        saved = _load_settings().get("lang")
+        saved = load_settings().get("lang")
         st.session_state["lang"] = saved if saved in LANGUAGES else "en"
     return st.session_state["lang"]
 
@@ -54,7 +37,7 @@ def language_switcher() -> None:
     """English | ไทย switch. Remembers the choice in user_settings.json."""
     def changed():
         st.session_state["lang"] = st.session_state["lang_switch"]
-        _save_settings({**_load_settings(), "lang": st.session_state["lang"]})
+        save_setting("lang", st.session_state["lang"])
 
     st.radio("Language / ภาษา", list(LANGUAGES), format_func=LANGUAGES.get,
              index=list(LANGUAGES).index(lang()), key="lang_switch", horizontal=True,
@@ -64,6 +47,7 @@ def language_switcher() -> None:
 def check_translations(paths: list[str]) -> list[str]:
     """English texts passed to t() in these files that have no Thai translation yet."""
     import ast
+    from pathlib import Path
 
     missing = []
     for path in paths:

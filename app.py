@@ -24,6 +24,11 @@ TOOL_PAGES = [
             url_path="calculator"),
 ]
 
+# Guides for the CFP career itself (not one module).
+CAREER_PAGES = [
+    st.Page("career/guide.py", title=t("CFP career guide"), icon="🎓", url_path="career"),
+]
+
 # Pages of each module, by module number. Modules without pages show "Coming later".
 MODULE_PAGES = {
     2: [
@@ -34,7 +39,7 @@ MODULE_PAGES = {
     ],
 }
 
-all_pages = [home] + TOOL_PAGES + [p for pages in MODULE_PAGES.values() for p in pages]
+all_pages = [home] + TOOL_PAGES + CAREER_PAGES + [p for pages in MODULE_PAGES.values() for p in pages]
 current = st.navigation(all_pages, position="hidden")  # we draw our own menu below
 
 # Sidebar menu: language switch, Home, Tools, then one section per module that opens and
@@ -44,6 +49,9 @@ with st.sidebar:
     st.page_link(home, icon=home.icon)
     st.caption(t("TOOLS"))
     for p in TOOL_PAGES:
+        st.page_link(p, icon=p.icon)
+    st.caption(t("CAREER"))
+    for p in CAREER_PAGES:
         st.page_link(p, icon=p.icon)
     st.caption(t("CFP MODULES"))
     for m in MODULES:

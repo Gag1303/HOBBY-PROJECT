@@ -6,12 +6,17 @@ Personal practice tools, organised by the 6 modules of the Thai CFP® program.
 
 | Module | Topic | Tools | Folder |
 |---|---|---|---|
-| 1 | Fundamentals of financial planning | – | – |
+| 1 | Foundation of financial planning, tax and ethics | – | – |
 | 2 | Investment planning | Thai mutual fund dashboard, investment simulator (Lump sum / DCA / VCA), data downloader | [module2_investment/](module2_investment/) |
-| 3 | Risk management & insurance planning | – | – |
-| 4 | Retirement planning & employee benefits | – | – |
+| 3 | Insurance planning | – | – |
+| 4 | Retirement planning | – | – |
 | 5 | Tax & estate planning | – | – |
-| 6 | Financial plan development | – | – |
+| 6 | Financial plan construction | – | – |
+
+**CFP career guide** ([career/](career/)): path to CFP (the 4 E's: education, exam, experience,
+ethics), the code of ethics and key rules of conduct, renewal/CPD, cross-border certification for
+working abroad, links to TFPA's official documents, and a personal progress tracker. It is a study
+summary in my own words; the TFPA documents themselves are not stored in this repo.
 
 **Tools for every module** ([calculators/](calculators/)): financial calculator like the HP 10bII /
 Casio FC-200V: TVM (N, I/Y, PV, PMT, FV with P/Y, C/Y, BGN/END and a schedule), cash flows
@@ -34,6 +39,8 @@ is a section you can open and close; the module of the page you are on opens by 
 
 ## Project layout
 - `app.py` – starts the app and draws the sidebar menu
+- `career/` – CFP career guide (`content.py` summary text, `guide.py` page)
+- `user_settings.py` – saves personal settings (language, CFP progress) to `user_settings.json`
 - `cfp_modules.py` – names and descriptions of the 6 modules (used by the menu and home page)
 - `i18n.py` / `i18n_th.py` – English/Thai switch and the Thai translations. Write on-screen text
   as `t("English text")` and add its Thai version to `i18n_th.py`

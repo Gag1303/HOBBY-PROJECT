@@ -8,11 +8,11 @@ TH = {
     # ---------- app, menu, home ----------
     "Home": "หน้าแรก",
     "TOOLS": "เครื่องมือ",
-    "CFP MODULES": "หมวดวิชา CFP",
+    "CFP MODULES": "ชุดวิชา CFP",
     "Financial calculator": "เครื่องคิดเลขการเงิน",
     "Thai mutual funds": "กองทุนรวมไทย",
     "Investment simulator": "จำลองการลงทุน",
-    "Module {n}": "หมวด {n}",
+    "Module {n}": "ชุดวิชาที่ {n}",
     "Coming later": "เร็ว ๆ นี้",
     "CFP Toolkit": "ชุดเครื่องมือ CFP",
     "Personal practice tools, organised by the 6 modules of the Thai CFP® program. "
@@ -42,6 +42,58 @@ TH = {
         "แนวคิด: คำนวณภาษีเงินได้บุคคลธรรมดา พร้อมค่าลดหย่อน SSF/RMF/ประกัน",
     "Ideas: bring modules 1-5 together into one client plan.":
         "แนวคิด: รวมหมวด 1-5 เป็นแผนการเงินฉบับเดียวสำหรับลูกค้า",
+
+    # ---------- CFP career guide ----------
+    "CAREER": "เส้นทางอาชีพ",
+    "CFP career guide": "คู่มือเส้นทางอาชีพ CFP",
+    "CFP career guide: path to CFP, ethics, renewal, working abroad, TFPA documents":
+        "คู่มือเส้นทางอาชีพ CFP: ขั้นตอนสู่ CFP จรรยาบรรณ การต่ออายุ การทำงานต่างประเทศ เอกสารสมาคมฯ",
+    "A personal study summary of the Thai Financial Planners Association (TFPA) documents. Rules and fees "
+    "can change – always check the official documents in the Documents tab.":
+        "สรุปเพื่อการศึกษาส่วนตัวจากเอกสารของสมาคมนักวางแผนการเงินไทย (TFPA) เกณฑ์และค่าธรรมเนียมอาจเปลี่ยนแปลงได้ "
+        "ควรตรวจสอบเอกสารทางการในแท็บเอกสารเสมอ",
+    "Path to CFP": "เส้นทางสู่ CFP",
+    "Ethics and rules": "จรรยาบรรณและหลักปฏิบัติ",
+    "Renewal and working abroad": "การต่ออายุและการทำงานต่างประเทศ",
+    "Documents": "เอกสาร",
+    "My progress": "ความคืบหน้าของฉัน",
+    "To use the CFP® mark in Thailand you need all **4 E's**:":
+        "การจะใช้เครื่องหมาย CFP® ในประเทศไทย ต้องมีครบ **4E**:",
+    "The 6 steps of financial planning (practice standards)": "6 ขั้นตอนของการวางแผนการเงิน (หลักปฏิบัติ)",
+    "The 8 principles of the Code of Ethics": "จรรยาบรรณ 8 ข้อ",
+    "Key rules of conduct": "หลักปฏิบัติที่สำคัญ",
+    "Grouped from the 37 rules of conduct. Breaking them can lead to disciplinary action and losing the "
+    "right to use the CFP mark.":
+        "จัดกลุ่มจากหลักปฏิบัติ 37 ข้อ การฝ่าฝืนอาจถูกลงโทษทางวินัยและเสียสิทธิ์ใช้เครื่องหมาย CFP",
+    "Keeping your CFP: renewal and CPD": "การรักษาคุณวุฒิ CFP: การต่ออายุและ CPD",
+    "Working in other countries (cross-border certification)":
+        "การทำงานในต่างประเทศ (การขึ้นทะเบียนข้ามประเทศ)",
+    "Official documents on the TFPA website. They open on tfpa.or.th.":
+        "เอกสารทางการบนเว็บไซต์สมาคมฯ เปิดที่ tfpa.or.th",
+    "Tick what you have done. It is saved on this computer only.":
+        "ติ๊กสิ่งที่ทำแล้ว ข้อมูลบันทึกไว้ในเครื่องนี้เท่านั้น",
+    "Training done (or exempted)": "อบรมแล้ว (หรือได้รับยกเว้น)",
+    "Exams passed": "สอบผ่านแล้ว",
+    "Experience": "ประสบการณ์",
+    "Ethics": "จรรยาบรรณ",
+    "Paper 1": "ฉบับที่ 1",
+    "Paper 2": "ฉบับที่ 2",
+    "Paper 3": "ฉบับที่ 3",
+    "Paper 4 part 1": "ฉบับที่ 4 ส่วนที่ 1",
+    "Paper 4 part 2": "ฉบับที่ 4 ส่วนที่ 2",
+    "Years of qualifying work": "จำนวนปีที่ทำงานที่นับได้",
+    "I have read the Code of Ethics": "อ่านประมวลจรรยาบรรณแล้ว",
+    "Overall progress: {pct}": "ความคืบหน้ารวม: {pct}",
+    "You meet all 4 E's – you can apply for CFP registration on tfpa.or.th.":
+        "ครบ 4E แล้ว – ยื่นขอขึ้นทะเบียน CFP ได้ที่ tfpa.or.th",
+    "Next: training for {m}": "ขั้นต่อไป: อบรม{m}",
+    "Next: pass {p}": "ขั้นต่อไป: สอบ{p}ให้ผ่าน",
+    "Next: build up 3 years of experience ({left} to go)": "ขั้นต่อไป: สะสมประสบการณ์ให้ครบ 3 ปี (เหลืออีก {left} ปี)",
+    "Next: read the Code of Ethics (Ethics tab)": "ขั้นต่อไป: อ่านประมวลจรรยาบรรณ (แท็บจรรยาบรรณ)",
+    "Modules 1–2 and papers 1–2 done: you may already qualify for AFPT (check that your module 2 is the "
+    "2021 curriculum).":
+        "ผ่านชุดวิชา 1–2 และข้อสอบฉบับ 1–2 แล้ว: อาจมีคุณสมบัติขอ AFPT ได้ "
+        "(ตรวจสอบว่าชุดวิชาที่ 2 เป็นหลักสูตรปี 2564)",
 
     # ---------- shared ----------
     "Data: thaimutualfund.com (AIMC) via api.settrade.com. "
