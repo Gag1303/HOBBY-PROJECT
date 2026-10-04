@@ -4,6 +4,8 @@ Back-test Lump sum, DCA and VCA on a portfolio of Thai mutual funds using their 
 history. The calculations live in simulate.py; this file is only the page.
 """
 
+from datetime import date
+
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -138,6 +140,8 @@ if missing:
     st.warning(f"No history for: {', '.join(missing)}")
     st.stop()
 prices = align_prices({s: h.set_index("navDate")["growth"] for s, h in histories.items()})
+# Leave out today's NAV: funds can still revise it, and many funds haven't published it yet.
+prices = prices[prices.index < pd.Timestamp(date.today())]
 if len(prices) < 2:
     st.warning("These funds have no dates in common.")
     st.stop()
@@ -159,7 +163,8 @@ if len(weights) > 1:
 note = f"Data starts {first_day:%d %b %Y}"
 if len(weights) > 1:
     note += f" (the youngest fund, {youngest}, launched then)"
-st.caption(note + ".")
+note += f". Latest date {last_day:%d %b %Y}: today's NAV is left out because it may not be final yet."
+st.caption(note)
 
 if start >= end:
     st.warning("Start date must be before the end date.")
