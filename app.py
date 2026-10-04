@@ -6,18 +6,20 @@ Run it with:
 and only runs on this computer.
 
 To add a tool for another module, create its folder (e.g. module3_insurance/) with a
-page file, then add an st.Page(...) line for it below.
+page file, then add an st.Page(...) for it to MODULE_PAGES below.
 """
 
 import streamlit as st
 
+from cfp_modules import MODULES
+
 st.set_page_config(page_title="CFP Toolkit", page_icon="🧭", layout="wide")
 
-pages = {
-    "": [
-        st.Page("home.py", title="Home", icon="🏠", default=True),
-    ],
-    "Module 2 · Investment planning": [
+home = st.Page("home.py", title="Home", icon="🏠", default=True)
+
+# Pages of each module, by module number. Modules without pages show "Coming later".
+MODULE_PAGES = {
+    2: [
         st.Page("module2_investment/dashboard.py", title="Thai mutual funds", icon="🏦",
                 url_path="mutual-funds"),
         st.Page("module2_investment/simulator.py", title="Investment simulator", icon="📈",
@@ -25,4 +27,21 @@ pages = {
     ],
 }
 
-st.navigation(pages).run()
+all_pages = [home] + [p for pages in MODULE_PAGES.values() for p in pages]
+current = st.navigation(all_pages, position="hidden")  # we draw our own menu below
+
+# Sidebar menu: one section per module that opens and closes. The module of the
+# page you are on starts open.
+with st.sidebar:
+    st.page_link(home, icon=home.icon)
+    for m in MODULES:
+        pages = MODULE_PAGES.get(m.number, [])
+        is_current = any(p.url_path == current.url_path for p in pages)
+        with st.expander(f"Module {m.number} · {m.name_en}", expanded=is_current):
+            for p in pages:
+                st.page_link(p, icon=p.icon)
+            if not pages:
+                st.caption("Coming later")
+    st.divider()
+
+current.run()
