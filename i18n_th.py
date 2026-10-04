@@ -70,8 +70,8 @@ TH = {
         "การทำงานในต่างประเทศ (การขึ้นทะเบียนข้ามประเทศ)",
     "Official documents on the TFPA website. They open on tfpa.or.th.":
         "เอกสารทางการบนเว็บไซต์สมาคมฯ เปิดที่ tfpa.or.th",
-    "Tick what you have done. It is saved on this computer only.":
-        "ติ๊กสิ่งที่ทำแล้ว ข้อมูลบันทึกไว้ในเครื่องนี้เท่านั้น",
+    "Tick what you have done. It is saved on this computer only, for your account.":
+        "ติ๊กสิ่งที่ทำแล้ว ข้อมูลบันทึกไว้ในเครื่องนี้เท่านั้น แยกตามบัญชีของคุณ",
     "Training done (or exempted)": "อบรมแล้ว (หรือได้รับยกเว้น)",
     "Exams passed": "สอบผ่านแล้ว",
     "Experience": "ประสบการณ์",
@@ -406,4 +406,73 @@ TH = {
     "effective rate.":
         "ธนาคารที่ประกาศ 12% ทบต้นรายเดือน จ่ายจริง 12.68% ต่อปี "
         "ควรเปรียบเทียบข้อเสนอด้วยอัตราที่แท้จริง",
+    # ---------- accounts and access ----------
+    "Log in": "เข้าสู่ระบบ",
+    "Log out": "ออกจากระบบ",
+    "Log in to CFP Toolkit": "เข้าสู่ระบบ CFP Toolkit",
+    "My account": "บัญชีของฉัน",
+    "Accounts and access": "บัญชีผู้ใช้และสิทธิ์การเข้าถึง",
+    "ADMIN": "ผู้ดูแลระบบ",
+    "Username": "ชื่อผู้ใช้",
+    "Display name": "ชื่อที่แสดง",
+    "Password": "รหัสผ่าน",
+    "Password again": "ยืนยันรหัสผ่าน",
+    "Role": "บทบาท",
+    "Create account": "สร้างบัญชี",
+    "Create the superadmin account": "สร้างบัญชีผู้ดูแลสูงสุด (Superadmin)",
+    "No accounts exist yet. The first account is the superadmin: it sees everything and decides "
+    "what other accounts can see.":
+        "ยังไม่มีบัญชีผู้ใช้ บัญชีแรกจะเป็นผู้ดูแลสูงสุด (Superadmin) ซึ่งเห็นทุกหน้า "
+        "และกำหนดได้ว่าบัญชีอื่นเห็นอะไรบ้าง",
+    "Username: 3-30 characters, only a-z, 0-9, dot, dash or underscore.":
+        "ชื่อผู้ใช้: 3-30 ตัวอักษร ใช้ได้เฉพาะ a-z, 0-9, จุด, ขีด หรือขีดล่าง",
+    "This username already exists.": "มีชื่อผู้ใช้นี้แล้ว",
+    "Password needs at least {n} characters.": "รหัสผ่านต้องมีอย่างน้อย {n} ตัวอักษร",
+    "The two passwords are not the same.": "รหัสผ่านทั้งสองช่องไม่ตรงกัน",
+    "Wrong username or password.": "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง",
+    "Too many wrong passwords. Try again in {n} minutes.":
+        "ใส่รหัสผ่านผิดหลายครั้งเกินไป ลองใหม่ในอีก {n} นาที",
+    "You were logged out after {n} minutes without activity.":
+        "ออกจากระบบอัตโนมัติ เนื่องจากไม่มีการใช้งาน {n} นาที",
+    "Tools (financial calculator)": "เครื่องมือ (เครื่องคิดเลขทางการเงิน)",
+    "Your account cannot see any area yet. Ask the superadmin to give you access.":
+        "บัญชีของคุณยังไม่ได้รับสิทธิ์เข้าถึงส่วนใด กรุณาขอสิทธิ์จากผู้ดูแลสูงสุด",
+    "Only a superadmin can open this page.": "เฉพาะผู้ดูแลสูงสุดเท่านั้นที่เปิดหน้านี้ได้",
+    "Superadmin – sees everything, manages accounts": "Superadmin – เห็นทุกหน้า และจัดการบัญชีผู้ใช้",
+    "User – sees only the areas ticked below": "User – เห็นเฉพาะส่วนที่เลือกไว้ด้านล่าง",
+    "Accounts are saved on this computer only (users.json, never uploaded to GitHub). "
+    "Changes apply on that person's next click.":
+        "บัญชีผู้ใช้บันทึกไว้ในเครื่องนี้เท่านั้น (users.json ไม่อัปโหลดขึ้น GitHub) "
+        "การเปลี่ยนแปลงมีผลเมื่อผู้ใช้คนนั้นคลิกครั้งถัดไป",
+    "Account": "บัญชี",
+    "Add account": "เพิ่มบัญชี",
+    "Edit account": "แก้ไขบัญชี",
+    "Delete account": "ลบบัญชี",
+    "Can see": "เห็นส่วนใดได้บ้าง",
+    "Can see (for role User)": "เห็นส่วนใดได้บ้าง (สำหรับบทบาท User)",
+    "Status": "สถานะ",
+    "Created": "สร้างเมื่อ",
+    "Everything": "ทุกส่วน",
+    "Disabled": "ระงับการใช้งาน",
+    "Active": "ใช้งานได้",
+    "Account active (can log in)": "บัญชีใช้งานได้ (เข้าสู่ระบบได้)",
+    "New password (leave empty to keep)": "รหัสผ่านใหม่ (เว้นว่างไว้หากไม่ต้องการเปลี่ยน)",
+    "Save changes": "บันทึกการเปลี่ยนแปลง",
+    "This is the only active superadmin. Make another superadmin first.":
+        "นี่คือผู้ดูแลสูงสุดคนเดียวที่ใช้งานอยู่ กรุณาตั้งผู้ดูแลสูงสุดคนอื่นก่อน",
+    "You cannot disable your own account.": "ไม่สามารถระงับบัญชีของตัวเองได้",
+    "There is no other account to delete.": "ไม่มีบัญชีอื่นให้ลบ",
+    "Yes, delete {u} and their saved progress. This cannot be undone.":
+        "ยืนยันลบบัญชี {u} และความคืบหน้าที่บันทึกไว้ ไม่สามารถกู้คืนได้",
+    "Account {u} added.": "เพิ่มบัญชี {u} แล้ว",
+    "Account {u} saved.": "บันทึกบัญชี {u} แล้ว",
+    "Account {u} deleted.": "ลบบัญชี {u} แล้ว",
+    "Superadmin: you can see everything and manage accounts on the Admin page.":
+        "Superadmin: คุณเห็นทุกหน้า และจัดการบัญชีผู้ใช้ได้ที่หน้าผู้ดูแลระบบ",
+    "You can see": "ส่วนที่คุณเห็นได้",
+    "Change password": "เปลี่ยนรหัสผ่าน",
+    "Current password": "รหัสผ่านปัจจุบัน",
+    "New password": "รหัสผ่านใหม่",
+    "The current password is wrong.": "รหัสผ่านปัจจุบันไม่ถูกต้อง",
+    "Password changed.": "เปลี่ยนรหัสผ่านแล้ว",
 }

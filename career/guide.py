@@ -5,6 +5,7 @@ The content is a study summary in career/content.py; the official documents are 
 
 import streamlit as st
 
+import auth
 from career.content import (
     AFPT, CROSS_BORDER, DOCUMENTS, ETHICS_PRINCIPLES, FOUR_E, PRACTICE_STEPS, RENEWAL, RULES,
 )
@@ -79,14 +80,16 @@ with tab_docs:
         for en, th, url in docs:
             st.markdown(f"- [{th if TH else en}]({url})")
 
-# ---------- my progress (saved on this computer) ----------
+# ---------- my progress (saved on this computer, per account) ----------
 
 with tab_me:
-    saved = load_settings().get("cfp_progress", {})
+    username = auth.current_user()["username"]
+    all_progress = load_settings().get("cfp_progress", {})
+    saved = all_progress.get(username, {})
     modules = [t("Module {n}", n=n) for n in range(1, 7)]
     papers = [t("Paper 1"), t("Paper 2"), t("Paper 3"), t("Paper 4 part 1"), t("Paper 4 part 2")]
 
-    st.caption(t("Tick what you have done. It is saved on this computer only."))
+    st.caption(t("Tick what you have done. It is saved on this computer only, for your account."))
     c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown("**📚 " + t("Training done (or exempted)") + "**")
@@ -106,7 +109,7 @@ with tab_me:
 
     progress = {"trained": trained, "passed": passed, "years": years, "ethics": ethics}
     if progress != saved:
-        save_setting("cfp_progress", progress)
+        save_setting("cfp_progress", {**all_progress, username: progress})
 
     steps_done = sum(trained) + sum(passed) + min(years, 3) / 3 * 3 + ethics
     st.progress(steps_done / 15, text=t("Overall progress: {pct}", pct=f"{steps_done / 15:.0%}"))

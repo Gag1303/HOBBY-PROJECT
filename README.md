@@ -37,8 +37,24 @@ the choice is saved in `user_settings.json` (not uploaded to GitHub), so it stay
 refresh or restart. The home page shows all 6 modules. In the sidebar each module
 is a section you can open and close; the module of the page you are on opens by itself.
 
+### Accounts and access
+Everyone has to log in. The first time you open the app it asks you to create the
+**superadmin** account. The superadmin sees every page and, on **Accounts and access**,
+can add accounts and tick which areas each one sees (Tools, Career guide, Module 1-6),
+disable or delete accounts, and reset passwords. Pages an account may not see are left out
+of the app completely, so typing their URL does not open them either.
+
+- Accounts are saved in `users.json` (not uploaded to GitHub). Passwords are stored only as
+  salted PBKDF2 hashes.
+- 5 wrong passwords in a row lock that username for 5 minutes.
+- You are logged out after 60 minutes without activity, and when you refresh the page.
+- CFP progress in the career guide is saved per account.
+- Forgot the only superadmin password? Delete `users.json` and create the superadmin again
+  (this removes all accounts).
+
 ## Project layout
-- `app.py` – starts the app and draws the sidebar menu
+- `app.py` – starts the app, checks the login and draws the sidebar menu
+- `auth.py` – log in, roles and access areas; `admin/` – Accounts and access page, My account page
 - `career/` – CFP career guide (`content.py` summary text, `guide.py` page)
 - `user_settings.py` – saves personal settings (language, CFP progress) to `user_settings.json`
 - `cfp_modules.py` – names and descriptions of the 6 modules (used by the menu and home page)

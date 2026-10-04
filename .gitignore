@@ -8,3 +8,6 @@ __pycache__/
 
 # Personal app settings (e.g. language)
 user_settings.json
+
+# Accounts and password hashes (never upload)
+users.json
