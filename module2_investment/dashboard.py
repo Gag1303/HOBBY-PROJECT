@@ -13,6 +13,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from module2_investment import client
+from module2_investment.simulate import FREQUENCIES, STRATEGIES, simulate, trade_dates
 from module2_investment.tables import (
     add_growth, amc_table, calendar_year_returns, dividends, drawdown, fund_stats, latest_nav,
     period_returns, to_dataframe,
@@ -66,6 +67,106 @@ def csv_bytes(df: pd.DataFrame) -> bytes:
 
 def signed(x: float, digits: int = 2) -> str:
     return "–" if pd.isna(x) else f"{x:+.{digits}f}%"
+
+
+STRATEGY_HELP = {
+    "Lump sum": "Invest the whole amount once, on the start date.",
+    "DCA": "Dollar cost averaging: invest the same amount every period, whatever the price.",
+    "VCA": "Value averaging: the portfolio should grow by a fixed amount every period. Each period you "
+           "top up whatever is needed to reach the target, so you buy more when prices fall and "
+           "less (or nothing) when they rise.",
+}
+
+
+def investment_simulation(hist: pd.DataFrame) -> None:
+    """Back-test Lump sum / DCA / VCA on one fund (Fund detail tab)."""
+    prices = hist.set_index("navDate")["growth"]
+    first_day, last_day = prices.index[0].date(), prices.index[-1].date()
+    default_start = max(first_day, (prices.index[-1] - pd.DateOffset(years=5)).date())
+
+    c1, c2, c3 = st.columns([2, 1, 1])
+    strategy = c1.radio("Strategy", STRATEGIES, index=1, horizontal=True)
+    start = c2.date_input("Start", value=default_start, min_value=first_day, max_value=last_day)
+    end = c3.date_input("End", value=last_day, min_value=first_day, max_value=last_day)
+    st.caption(STRATEGY_HELP[strategy])
+
+    c1, c2, c3 = st.columns([2, 1, 1])
+    if strategy == "Lump sum":
+        amount = c1.number_input("Amount (THB)", min_value=100, value=100_000, step=1_000, format="%d")
+        frequency, allow_sell = "Monthly", False
+    else:
+        label = "Amount each period (THB)" if strategy == "DCA" else "Target growth each period (THB)"
+        amount = c1.number_input(label, min_value=100, value=5_000, step=500, format="%d")
+        frequency = c2.selectbox("Every", list(FREQUENCIES))
+        allow_sell = strategy == "VCA" and c3.toggle(
+            "Sell when above target", help="Off: when the portfolio is above target you just skip "
+                                           "that period. On: you sell the part above target.")
+
+    if start >= end:
+        st.warning("Start date must be before the end date.")
+        return
+    timeline, trades, s = simulate(prices, start, end, strategy, amount, frequency, allow_sell)
+    if not s:
+        st.warning("Not enough NAV data in this period.")
+        return
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Money invested", f"{s['Money in']:,.0f} THB")
+    m2.metric("Value at end", f"{s['Value now']:,.0f} THB")
+    m3.metric("Profit", f"{s['Profit']:,.0f} THB", signed(s["Profit %"]))
+    m4.metric("Return per year", signed(s["Return per year %"]),
+              help="Money-weighted return (IRR, like Excel XIRR). Fair for comparing strategies "
+                   "that put money in at different times.")
+    if s["Money out (sold)"] > 0:
+        st.caption(f"Includes {s['Money out (sold)']:,.0f} THB taken out by selling above target.")
+
+    fig = go.Figure([
+        go.Scatter(x=timeline.index, y=timeline["value"], name="Portfolio value",
+                   line=dict(width=2, color=SERIES_COLORS[0]),
+                   hovertemplate="%{y:,.0f} THB<extra>Portfolio value</extra>"),
+        go.Scatter(x=timeline.index, y=timeline["invested"], name="Money invested",
+                   line=dict(width=2, color=SERIES_COLORS[1], shape="hv"),
+                   hovertemplate="%{y:,.0f} THB<extra>Money invested</extra>"),
+    ])
+    fig.update_layout(height=420, margin=dict(l=0, r=0, t=30, b=0), hovermode="x unified",
+                      yaxis=dict(title="THB", tickformat=","),
+                      legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom"))
+    st.plotly_chart(fig, use_container_width=True)
+
+    nav = hist.set_index("navDate")["navPerUnit"]
+    with st.expander(f"Every buy / sell ({s['Trades']})"):
+        rows = trades.assign(nav=trades["date"].map(nav))[["date", "nav", "cash", "valueAfter"]]
+        rows = rows[rows["cash"] != 0].style.format(
+            {"date": "{:%d %b %Y}", "nav": "{:.4f}", "cash": "{:+,.0f}", "valueAfter": "{:,.0f}"})
+        st.dataframe(rows, hide_index=True, use_container_width=True, column_config={
+            "date": "Date",
+            "nav": "NAV",
+            "cash": "Cash in (+) / out (−)",
+            "valueAfter": "Portfolio value after",
+        })
+
+    # Same period, all three strategies, with comparable amounts.
+    per_period = amount
+    if strategy == "Lump sum":
+        n = len(trade_dates(prices, start, end, frequency))
+        per_period = amount / max(n, 1)
+    dca = simulate(prices, start, end, "DCA", per_period, frequency)[2]
+    results = {
+        "Lump sum": simulate(prices, start, end, "Lump sum", dca["Money in"])[2],
+        "DCA": dca,
+        "VCA": simulate(prices, start, end, "VCA", per_period, frequency, allow_sell)[2],
+    }
+    table = pd.DataFrame(results).T[["Money in", "Value now", "Profit", "Profit %",
+                                     "Return per year %", "Largest single top-up"]]
+    st.markdown(f"#### All strategies · same period ({frequency.lower()}, "
+                f"{per_period:,.0f} THB per period)")
+    money_cols = ["Money in", "Value now", "Profit", "Largest single top-up"]
+    styled = table.style.format("{:,.0f}", subset=money_cols).format(signed, subset=["Profit %", "Return per year %"])
+    st.dataframe(styled, use_container_width=True, column_config={"Value now": "Value at end"})
+    st.caption("Lump sum invests the same total as DCA, all on the first day. VCA's target grows by "
+               "the same amount per period, so the money it needs is different. Dividends are "
+               "reinvested; fees and taxes are not included. Past performance does not guarantee "
+               "future results.")
 
 
 # ---------- sidebar ----------
@@ -133,22 +234,29 @@ with tab_market:
     table = view[["symbol", name_col, "navDate", "amcCode", "navPerUnit", "change", "changePct",
                   "nav", "buyPrice", "sellPrice", "projectType"]].copy()
     table["nav"] = table["nav"] / 1e6
+    # ETFs have no buy/sell price (they trade on the exchange). Streamlit shows empty cells as
+    # "None", so turn these two columns into text with a dash instead.
+    for col in ["buyPrice", "sellPrice"]:
+        table[col] = table[col].map(lambda v: "–" if pd.isna(v) else f"{v:.4f}")
     st.dataframe(
-        table,
+        table.style.format({
+            "navDate": "{:%d %b}", "navPerUnit": "{:.4f}", "change": "{:+.4f}", "changePct": signed,
+            "nav": "{:,.1f}",
+        }),
         hide_index=True,
         use_container_width=True,
         height=420,
         column_config={
             "symbol": "Symbol",
             name_col: "Fund name",
-            "navDate": st.column_config.DateColumn("NAV date", format="DD MMM"),
+            "navDate": "NAV date",
             "amcCode": "Company",
-            "navPerUnit": st.column_config.NumberColumn("NAV/unit", format="%.4f"),
-            "change": st.column_config.NumberColumn("Change", format="%+.4f"),
-            "changePct": st.column_config.NumberColumn("Change %", format="%+.2f%%"),
-            "nav": st.column_config.NumberColumn("Fund size (M THB)", format="%,.1f"),
-            "buyPrice": st.column_config.NumberColumn("Buy", format="%.4f"),
-            "sellPrice": st.column_config.NumberColumn("Sell", format="%.4f"),
+            "navPerUnit": "NAV/unit",
+            "change": "Change",
+            "changePct": "Change %",
+            "nav": "Fund size (M THB)",
+            "buyPrice": "Buy",
+            "sellPrice": "Sell",
             "projectType": "Type",
         },
     )
@@ -173,7 +281,11 @@ with tab_market:
                           "<br>Change %{x:+.2f}%<extra></extra>",
         ))
         fig.update_layout(title=title, height=380, margin=dict(l=0, r=40, t=40, b=0),
-                          xaxis=dict(ticksuffix="%", zeroline=True), yaxis=dict(autorange="reversed"))
+                          xaxis=dict(ticksuffix="%", zeroline=True,
+                                     # extra room so the value labels don't run into the fund names
+                                     range=[min(0, rows["changePct"].min()) * 1.35,
+                                            max(0, rows["changePct"].max()) * 1.35]),
+                          yaxis=dict(autorange="reversed"))
         col.plotly_chart(fig, use_container_width=True)
 
 
@@ -212,54 +324,26 @@ with tab_detail:
         st.caption("Periods of 1 year or more are also shown per year, as on official factsheets. "
                    "A dash means the fund is younger than the period.")
 
-        # Price chart
-        c_show, c_amount, _ = st.columns([2, 1, 1])
-        show = c_show.radio("Chart", ["Growth of an investment", "NAV per unit"], horizontal=True)
-        has_dividends = hist["dividendValue"].fillna(0).gt(0).any()
-        if show != "NAV per unit":
-            amount = c_amount.number_input("Amount invested at launch (THB)", min_value=100,
-                                           value=10_000, step=1_000, format="%d")
-            final = hist["growth"].iloc[-1] * amount
-            line = (f"**{amount:,.0f} THB** invested on {hist['navDate'].iloc[0]:%d %b %Y} would be worth "
-                    f"**{final:,.0f} THB** on {last['navDate']:%d %b %Y} "
-                    f"({signed((final / amount - 1) * 100)}, dividends reinvested)")
-            if has_dividends:
-                price_final = hist["navPerUnit"].iloc[-1] / hist["navPerUnit"].iloc[0] * amount
-                line += f". Without the dividends: {price_final:,.0f} THB."
-            st.markdown(line)
-        fig = go.Figure()
+        show = st.radio("Chart", ["NAV per unit", "Investment simulation"], horizontal=True)
         if show == "NAV per unit":
-            fig.add_trace(go.Scatter(
+            fig = go.Figure(go.Scatter(
                 x=hist["navDate"], y=hist["navPerUnit"], name="NAV per unit",
                 line=dict(width=2, color=SERIES_COLORS[0]),
                 hovertemplate="%{x|%d %b %Y}<br>NAV %{y:.4f}<extra></extra>",
             ))
+            fig.update_layout(
+                height=420, margin=dict(l=0, r=0, t=30, b=0), hovermode="x unified",
+                xaxis=dict(rangeselector=dict(buttons=[
+                    dict(count=1, label="1Y", step="year", stepmode="backward"),
+                    dict(count=3, label="3Y", step="year", stepmode="backward"),
+                    dict(count=5, label="5Y", step="year", stepmode="backward"),
+                    dict(count=10, label="10Y", step="year", stepmode="backward"),
+                    dict(label="All", step="all"),
+                ])),
+            )
+            st.plotly_chart(fig, use_container_width=True)
         else:
-            fig.add_trace(go.Scatter(
-                x=hist["navDate"], y=hist["growth"] * amount, name="Dividends reinvested",
-                line=dict(width=2, color=SERIES_COLORS[0]),
-                hovertemplate="%{y:,.0f} THB<extra>Dividends reinvested</extra>",
-            ))
-            if has_dividends:
-                price_only = hist["navPerUnit"] / hist["navPerUnit"].iloc[0] * amount
-                fig.add_trace(go.Scatter(
-                    x=hist["navDate"], y=price_only, name="Price only",
-                    line=dict(width=2, color=SERIES_COLORS[1]),
-                    hovertemplate="%{y:,.0f} THB<extra>Price only</extra>",
-                ))
-        fig.update_layout(
-            height=420, margin=dict(l=0, r=0, t=30, b=0), hovermode="x unified",
-            showlegend=bool(has_dividends and show != "NAV per unit"),
-            legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom"),
-            xaxis=dict(rangeselector=dict(buttons=[
-                dict(count=1, label="1Y", step="year", stepmode="backward"),
-                dict(count=3, label="3Y", step="year", stepmode="backward"),
-                dict(count=5, label="5Y", step="year", stepmode="backward"),
-                dict(count=10, label="10Y", step="year", stepmode="backward"),
-                dict(label="All", step="all"),
-            ])),
-        )
-        st.plotly_chart(fig, use_container_width=True)
+            investment_simulation(hist)
 
         c1, c2 = st.columns(2)
 
@@ -399,12 +483,13 @@ with tab_amc:
     st.plotly_chart(fig, use_container_width=True)
 
     st.dataframe(
-        by_amc, hide_index=True, use_container_width=True,
+        by_amc.style.format({"aum": "{:,.1f}", "median_change": signed}), hide_index=True,
+        use_container_width=True,
         column_config={
             "amcCode": "Company",
-            "funds": st.column_config.NumberColumn("Number of funds", format="%d"),
-            "aum": st.column_config.NumberColumn("Total size (B THB)", format="%,.1f"),
-            "median_change": st.column_config.NumberColumn("Median last change", format="%+.2f%%"),
+            "funds": "Number of funds",
+            "aum": "Total size (B THB)",
+            "median_change": "Median last change",
         },
     )
     st.caption("Fund size is the sum of NAV across all share classes the company manages.")

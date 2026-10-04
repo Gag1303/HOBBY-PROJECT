@@ -20,8 +20,12 @@ Start the CFP Toolkit app (see the main README), then open **Module 2 · Investm
 Thai mutual funds** in the sidebar. It has four tabs:
 - **Market overview** – every fund's latest NAV, search/filter, biggest movers, CSV download
 - **Fund detail** – one fund's full history since launch: factsheet-style returns
-  (YTD, 3M … 10Y, since launch), growth chart, return by calendar year, drop from previous
+  (YTD, 3M … 10Y, since launch), NAV chart, return by calendar year, drop from previous
   high, and dividend history
+  - **Investment simulation** – back-test Lump sum, DCA (same amount each period) or VCA
+    (value averaging: top up to a target that grows each period) on any date range, monthly /
+    weekly / quarterly, with money-weighted return (XIRR) and a side-by-side comparison of all
+    three strategies
 - **Compare funds** – up to 5 funds on one "growth of 100 THB" chart, with
   total/annualized return, volatility and max drawdown for 1M to Max
 - **Fund companies** – fund size and number of funds per asset management company
@@ -43,6 +47,7 @@ CSV files are saved with UTF-8 BOM so Thai names display correctly in Excel.
 - `dashboard.py` – the dashboard page (Streamlit)
 - `client.py` – functions that call the API (reuse these in your own scripts/notebooks)
 - `tables.py` – cleans API data into tables and calculates return/risk numbers
+- `simulate.py` – Lump sum / DCA / VCA back-test and XIRR
 - `fetch_funds.py` – command-line tool that saves CSV/Excel files
 
 ## Notes
