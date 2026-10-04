@@ -13,6 +13,10 @@ Personal practice tools, organised by the 6 modules of the Thai CFP® program.
 | 5 | Tax & estate planning | – | – |
 | 6 | Financial plan development | – | – |
 
+**Tools for every module** ([calculators/](calculators/)): financial calculator like the HP 10bII /
+Casio FC-200V: TVM (N, I/Y, PV, PMT, FV with P/Y, C/Y, BGN/END and a schedule), cash flows
+(NPV / IRR) and interest rate conversion (nominal ↔ effective).
+
 ## Setup
 ```
 pip install -r requirements.txt
@@ -30,6 +34,7 @@ is a section you can open and close; the module of the page you are on opens by 
 - `app.py` – starts the app and draws the sidebar menu
 - `cfp_modules.py` – names and descriptions of the 6 modules (used by the menu and home page)
 - `home.py` – home page with the 6 modules
+- `calculators/` – financial calculator (`fincalc.py` maths, `financial_calculator.py` page)
 - `moduleN_<topic>/` – code and README for each module
 - `data/` – downloaded files (not uploaded to GitHub)
 

@@ -17,6 +17,12 @@ st.set_page_config(page_title="CFP Toolkit", page_icon="🧭", layout="wide")
 
 home = st.Page("home.py", title="Home", icon="🏠", default=True)
 
+# Tools used across all modules, shown above the modules in the sidebar.
+TOOL_PAGES = [
+    st.Page("calculators/financial_calculator.py", title="Financial calculator", icon="🧮",
+            url_path="calculator"),
+]
+
 # Pages of each module, by module number. Modules without pages show "Coming later".
 MODULE_PAGES = {
     2: [
@@ -27,13 +33,17 @@ MODULE_PAGES = {
     ],
 }
 
-all_pages = [home] + [p for pages in MODULE_PAGES.values() for p in pages]
+all_pages = [home] + TOOL_PAGES + [p for pages in MODULE_PAGES.values() for p in pages]
 current = st.navigation(all_pages, position="hidden")  # we draw our own menu below
 
 # Sidebar menu: one section per module that opens and closes. The module of the
 # page you are on starts open.
 with st.sidebar:
     st.page_link(home, icon=home.icon)
+    st.caption("TOOLS")
+    for p in TOOL_PAGES:
+        st.page_link(p, icon=p.icon)
+    st.caption("CFP MODULES")
     for m in MODULES:
         pages = MODULE_PAGES.get(m.number, [])
         is_current = any(p.url_path == current.url_path for p in pages)

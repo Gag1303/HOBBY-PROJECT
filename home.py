@@ -8,6 +8,11 @@ st.title("🧭 CFP Toolkit")
 st.write("Personal practice tools, organised by the 6 modules of the Thai CFP® program. "
          "Each module gets its own tools as I learn it.")
 
+with st.container(border=True):
+    st.markdown("**Tools** · for every module")
+    st.page_link("calculators/financial_calculator.py", label="Financial calculator: TVM, NPV / IRR, "
+                 "interest rate conversion", icon="🧮")
+
 for i, m in enumerate(MODULES):
     if i % 3 == 0:
         cols = st.columns(3)  # new row every 3 cards so rows line up
