@@ -1,13 +1,13 @@
 """Download Thai mutual fund NAV data to CSV / Excel.
 
 Examples:
-    python fetch_funds.py latest                      # all funds, latest NAV
-    python fetch_funds.py latest --excel              # same, also save .xlsx
-    python fetch_funds.py history K-USA-A(A) --days 365
-    python fetch_funds.py history SCBSET --from 2026-01-01 --to 2026-06-30
-    python fetch_funds.py amcs                        # list of fund companies
+    python -m module2_investment.fetch_funds latest            # all funds, latest NAV
+    python -m module2_investment.fetch_funds latest --excel    # same, also save .xlsx
+    python -m module2_investment.fetch_funds history K-USA-A(A) --days 365
+    python -m module2_investment.fetch_funds history SCBSET --from 2026-01-01 --to 2026-06-30
+    python -m module2_investment.fetch_funds amcs              # list of fund companies
 
-Files are saved in the data/ folder.
+Run from the project folder. Files are saved in the project's data/ folder.
 """
 
 import argparse
@@ -16,10 +16,10 @@ from pathlib import Path
 
 import pandas as pd
 
-from thai_funds import client
-from thai_funds.tables import latest_nav, to_dataframe
+from module2_investment import client
+from module2_investment.tables import latest_nav, to_dataframe
 
-DATA_DIR = Path(__file__).parent / "data"
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"  # project-root data/ folder
 
 
 def save(df: pd.DataFrame, name: str, excel: bool) -> None:

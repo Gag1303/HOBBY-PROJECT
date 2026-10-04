@@ -5,7 +5,7 @@ from datetime import date, timedelta
 import numpy as np
 import pandas as pd
 
-from thai_funds import client
+from module2_investment import client
 
 # Columns we keep, in a readable order.
 COLUMNS = [
