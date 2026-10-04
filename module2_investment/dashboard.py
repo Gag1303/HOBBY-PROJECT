@@ -201,6 +201,7 @@ with tab_detail:
             st.session_state["sim_portfolio"] = pd.DataFrame(
                 [{"Fund": fund_label(sym, last["nameEn"]), "Weight %": 100}])
             st.session_state.pop("sim_editor", None)  # forget edits to the previous portfolio
+            st.session_state["sim_mode"] = "Weight %"
             st.switch_page("module2_investment/simulator.py")
 
         c1, c2 = st.columns(2)

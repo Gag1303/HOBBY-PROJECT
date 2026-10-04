@@ -44,36 +44,56 @@ by_symbol = {symbol_of(o): o for o in options}
 # ---------- portfolio ----------
 
 st.markdown("#### Portfolio")
-if "sim_portfolio" not in st.session_state:
-    st.session_state["sim_portfolio"] = pd.DataFrame([
-        {"Fund": by_symbol.get("ES-GQG"), "Weight %": 60},
-        {"Fund": by_symbol.get("SCBSET"), "Weight %": 40},
+by_amount = st.radio(
+    "Enter the portfolio as", ["Weight %", "Amount (THB)"], horizontal=True, key="sim_mode",
+    help="Weight %: choose how to split, then the total amount under Strategy. "
+         "Amount (THB): type how much goes into each fund; the split comes from the amounts.",
+) == "Amount (THB)"
+
+# Each way of entering has its own table, so switching back and forth keeps both.
+col = "Amount (THB)" if by_amount else "Weight %"
+table_key, editor_key = ("sim_portfolio_thb", "sim_editor_thb") if by_amount else ("sim_portfolio", "sim_editor")
+if table_key not in st.session_state:
+    a, b = (3_000, 2_000) if by_amount else (60, 40)
+    st.session_state[table_key] = pd.DataFrame([
+        {"Fund": by_symbol.get("ES-GQG"), col: a},
+        {"Fund": by_symbol.get("SCBSET"), col: b},
     ]).dropna()
+value_column = (
+    st.column_config.NumberColumn(col, min_value=0, step=500, format="%d", required=True)
+    if by_amount else
+    st.column_config.NumberColumn(col, min_value=0, max_value=100, step=5, format="%d%%", required=True)
+)
 edited = st.data_editor(
-    st.session_state["sim_portfolio"], key="sim_editor", num_rows="dynamic", hide_index=True,
+    st.session_state[table_key], key=editor_key, num_rows="dynamic", hide_index=True,
     use_container_width=True,
     column_config={
         "Fund": st.column_config.SelectboxColumn("Fund (type to search)", options=options,
                                                  required=True, width="large"),
-        "Weight %": st.column_config.NumberColumn("Weight %", min_value=0, max_value=100, step=5,
-                                                  format="%d%%", required=True),
+        col: value_column,
     },
 )
-st.caption(f"Add a row with the + under the table, delete with the checkbox and 🗑. Up to {MAX_FUNDS} funds.")
+how = ("Amount = THB per fund: invested once for Lump sum, each period for DCA, target growth "
+       "each period for VCA. " if by_amount else "")
+st.caption(f"{how}Add a row with the + under the table, delete with the checkbox and 🗑. "
+           f"Up to {MAX_FUNDS} funds.")
 
-rows = edited.dropna(subset=["Fund", "Weight %"])
-rows = rows[rows["Weight %"] > 0]
-weights = rows.groupby(rows["Fund"].map(symbol_of), sort=False)["Weight %"].sum()  # merge duplicates
+rows = edited.dropna(subset=["Fund", col])
+rows = rows[rows[col] > 0]
+weights = rows.groupby(rows["Fund"].map(symbol_of), sort=False)[col].sum()  # merge duplicates
 if weights.empty:
-    st.info("Add at least one fund with a weight above 0%.")
+    st.info(f"Add at least one fund with {'an amount' if by_amount else 'a weight'} above 0.")
     st.stop()
 if len(weights) > MAX_FUNDS:
     st.warning(f"Only the first {MAX_FUNDS} funds are used.")
     weights = weights.iloc[:MAX_FUNDS]
 total = weights.sum()
-if abs(total - 100) > 0.01:
-    st.info(f"Weights add up to {total:g}%, so they are scaled to 100% "
-            f"({', '.join(f'{s} {w / total * 100:.1f}%' for s, w in weights.items())}).")
+split = ", ".join(f"{s} {w / total * 100:.1f}%" for s, w in weights.items())
+if by_amount:
+    if len(weights) > 1:
+        st.caption(f"Total {total:,.0f} THB, split {split}.")
+elif abs(total - 100) > 0.01:
+    st.info(f"Weights add up to {total:g}%, so they are scaled to 100% ({split}).")
 weights = weights / total * 100
 
 with st.spinner("Loading fund history ..."):
@@ -104,12 +124,19 @@ if len(weights) > 1:
 st.caption(f"{STRATEGY_HELP[strategy]} {note}.")
 
 c1, c2, c3, c4 = st.columns([2, 1, 1, 1])
+label = {"Lump sum": "Amount (THB)", "DCA": "Amount each period (THB)",
+         "VCA": "Target growth each period (THB)"}[strategy]
+if by_amount:
+    amount = total  # the sum of the amounts in the portfolio table
+    c1.text_input(label, value=f"{amount:,.0f}", disabled=True,
+                  help="Sum of the amounts in the portfolio table. Change them there.")
+elif strategy == "Lump sum":
+    amount = c1.number_input(label, min_value=100, value=100_000, step=1_000, format="%d")
+else:
+    amount = c1.number_input(label, min_value=100, value=5_000, step=500, format="%d")
 if strategy == "Lump sum":
-    amount = c1.number_input("Amount (THB)", min_value=100, value=100_000, step=1_000, format="%d")
     frequency, allow_sell = "Monthly", False
 else:
-    label = "Amount each period (THB)" if strategy == "DCA" else "Target growth each period (THB)"
-    amount = c1.number_input(label, min_value=100, value=5_000, step=500, format="%d")
     frequency = c2.selectbox("Every", list(FREQUENCIES))
     allow_sell = strategy == "VCA" and c4.toggle(
         "Sell when above target", help="Off: when the portfolio is above target you just skip "
