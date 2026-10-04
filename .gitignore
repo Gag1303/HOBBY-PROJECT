@@ -1,0 +1,7 @@
+# Downloaded data (re-create any time with fetch_funds.py)
+data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
