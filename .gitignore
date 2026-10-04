@@ -5,3 +5,6 @@ data/
 __pycache__/
 *.pyc
 .venv/
+
+# Personal app settings (e.g. language)
+user_settings.json

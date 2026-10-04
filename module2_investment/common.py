@@ -5,6 +5,7 @@ from datetime import date
 import pandas as pd
 import streamlit as st
 
+from i18n import t
 from module2_investment import client
 from module2_investment.tables import add_growth, amc_table, latest_nav, to_dataframe
 
@@ -46,7 +47,7 @@ def last_date_or_stop() -> date:
     try:
         return load_last_date()
     except Exception as e:  # network down, API changed, ...
-        st.error(f"Could not reach the data source: {e}")
+        st.error(t("Could not reach the data source: {error}", error=e))
         st.stop()
 
 

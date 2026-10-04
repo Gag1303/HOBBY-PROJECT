@@ -12,6 +12,7 @@ from calculators.fincalc import (
     annual_rate, effective_rate, irr, nominal_rate, npv, periodic_rate, schedule, solve_fv,
     solve_i, solve_n, solve_pmt, solve_pv,
 )
+from i18n import t
 
 TVM_KEYS = ["N", "I/Y", "PV", "PMT", "FV"]
 PER_YEAR = [1, 2, 4, 12, 52, 365]
@@ -53,27 +54,28 @@ def load_example():
     st.session_state.update(tvm_solve=solve, tvm_py=py, tvm_cy=py, tvm_mode="BGN" if bgn else "END")
 
 
-st.title("🧮 Financial calculator")
-st.caption("Works like the HP 10bII / Casio FC-200V used in the CFP exam. Sign rule: money you "
-           "**pay out is negative**, money you **receive is positive**.")
+st.title("🧮 " + t("Financial calculator"))
+st.caption(t("Works like the HP 10bII / Casio FC-200V used in the CFP exam. Sign rule: money you "
+             "**pay out is negative**, money you **receive is positive**."))
 
-tab_tvm, tab_cf, tab_rate = st.tabs(["⏳ TVM (N, I/Y, PV, PMT, FV)", "💵 Cash flows (NPV / IRR)",
-                                      "🔁 Interest rate conversion"])
+tab_tvm, tab_cf, tab_rate = st.tabs(["⏳ " + t("TVM (N, I/Y, PV, PMT, FV)"),
+                                      "💵 " + t("Cash flows (NPV / IRR)"),
+                                      "🔁 " + t("Interest rate conversion")])
 
 # ---------- TVM ----------
 
 with tab_tvm:
-    st.selectbox("Load an example", list(EXAMPLES), index=None, key="tvm_example",
-                 on_change=load_example, placeholder="Pick a practice question (optional)")
+    st.selectbox(t("Load an example"), list(EXAMPLES), index=None, key="tvm_example", format_func=t,
+                 on_change=load_example, placeholder=t("Pick a practice question (optional)"))
 
     c1, c2, c3, c4 = st.columns(4)
-    solve_for = c1.selectbox("Solve for", TVM_KEYS, key="tvm_solve")
-    py = c2.selectbox("P/Y (payments per year)", PER_YEAR, key="tvm_py")
-    cy = c3.selectbox("C/Y (compounding per year)", PER_YEAR, key="tvm_cy",
-                      help="How often interest is added. Usually the same as P/Y.")
-    mode = c4.radio("Payments at", ["END", "BGN"], key="tvm_mode", horizontal=True,
-                    help="END: at the end of each period (loans, most savings). "
-                         "BGN: at the start (rent, insurance premiums, retirement spending).")
+    solve_for = c1.selectbox(t("Solve for"), TVM_KEYS, key="tvm_solve")
+    py = c2.selectbox(t("P/Y (payments per year)"), PER_YEAR, key="tvm_py")
+    cy = c3.selectbox(t("C/Y (compounding per year)"), PER_YEAR, key="tvm_cy",
+                      help=t("How often interest is added. Usually the same as P/Y."))
+    mode = c4.radio(t("Payments at"), ["END", "BGN"], key="tvm_mode", horizontal=True,
+                    help=t("END: at the end of each period (loans, most savings). "
+                           "BGN: at the start (rent, insurance premiums, retirement spending)."))
     bgn = mode == "BGN"
 
     cols = dict(zip(TVM_KEYS, st.columns(5)))
@@ -83,7 +85,7 @@ with tab_tvm:
             slots[k] = cols[k].empty()  # filled with the answer below
         else:
             fmt = "%.4f" if k == "I/Y" else "%.2f"
-            values[k] = cols[k].number_input(k, key=f"tvm_{k}", format=fmt, help=TVM_HELP[k],
+            values[k] = cols[k].number_input(k, key=f"tvm_{k}", format=fmt, help=t(TVM_HELP[k]),
                                              step=1.0 if k in ("N", "I/Y") else 1000.0)
 
     try:
@@ -107,38 +109,42 @@ with tab_tvm:
         slots[solve_for].metric(f"{solve_for} =", shown)
     except (ValueError, ZeroDivisionError, OverflowError) as e:
         slots[solve_for].metric(f"{solve_for} =", "–")
-        st.warning(str(e) if str(e) else "No solution for these values. Check the signs.")
+        st.warning(t(str(e)) if str(e) else t("No solution for these values. Check the signs."))
         st.stop()
 
     n, years = values["N"], values["N"] / py
     st.info(
-        f"**{solve_for} = {shown}**  ·  N = {n:,.2f} periods = {years:,.2f} years  ·  "
-        f"rate per period {i * 100:.4f}%  ·  effective rate per year "
-        f"{effective_rate(values['I/Y'], cy):.4f}%  ·  payments at {mode}"
+        f"**{solve_for} = {shown}**  ·  "
+        + t("N = {n} periods = {years} years", n=f"{n:,.2f}", years=f"{years:,.2f}") + "  ·  "
+        + t("rate per period {pct}", pct=f"{i * 100:.4f}%") + "  ·  "
+        + t("effective rate per year {pct}", pct=f"{effective_rate(values['I/Y'], cy):.4f}%") + "  ·  "
+        + t("payments at {mode}", mode=mode)
     )
 
     if 0 < n <= 1200 and abs(n - round(n)) < 1e-6:
         rows = pd.DataFrame(schedule(int(round(n)), i, values["PV"], values["PMT"], bgn))
-        with st.expander(f"Schedule: balance period by period ({int(round(n))} periods)"):
-            fig = go.Figure(go.Scatter(x=rows["Period"], y=rows["Balance"], mode="lines",
-                                       line=dict(width=2, color="#2a78d6"),
-                                       hovertemplate="Period %{x}<br>Balance %{y:,.2f}<extra></extra>"))
-            fig.update_layout(height=280, margin=dict(l=0, r=0, t=10, b=0),
-                              xaxis_title="Period", yaxis=dict(title="Balance", tickformat=","))
+        with st.expander(t("Schedule: balance period by period ({n} periods)", n=int(round(n)))):
+            fig = go.Figure(go.Scatter(
+                x=rows["Period"], y=rows["Balance"], mode="lines", line=dict(width=2, color="#2a78d6"),
+                hovertemplate=t("Period") + " %{x}<br>" + t("Balance") + " %{y:,.2f}<extra></extra>"))
+            fig.update_layout(height=280, margin=dict(l=0, r=0, t=10, b=0), xaxis_title=t("Period"),
+                              yaxis=dict(title=t("Balance"), tickformat=","))
             st.plotly_chart(fig, use_container_width=True)
             st.dataframe(rows.style.format({"Payment": "{:,.2f}", "Interest": "{:,.2f}",
                                             "Balance": "{:,.2f}"}),
-                         hide_index=True, use_container_width=True)
-            st.caption(f"Total payments {rows['Payment'].sum():,.2f} · total interest "
-                       f"{rows['Interest'].sum():,.2f}. Signs follow the calculator's rule: when "
-                       "saving, the balance is negative (money you have put in, worth FV at the "
-                       "end); for a loan it is positive (money you still owe, 0 when paid off).")
+                         hide_index=True, use_container_width=True,
+                         column_config={c: t(c) for c in rows.columns})
+            st.caption(t("Total payments {paid} · total interest {interest}. Signs follow the "
+                         "calculator's rule: when saving, the balance is negative (money you have put "
+                         "in, worth FV at the end); for a loan it is positive (money you still owe, 0 "
+                         "when paid off).", paid=f"{rows['Payment'].sum():,.2f}",
+                         interest=f"{rows['Interest'].sum():,.2f}"))
 
 # ---------- cash flows ----------
 
 with tab_cf:
-    st.caption("CF0 is today (usually the money you put in, negative). The following rows come at "
-               "the end of each period. **Times** repeats a cash flow, like Nj on the calculator.")
+    st.caption(t("CF0 is today (usually the money you put in, negative). The following rows come at "
+                 "the end of each period. **Times** repeats a cash flow, like Nj on the calculator."))
     if "cf_table" not in st.session_state:
         st.session_state["cf_table"] = pd.DataFrame({
             "Cash flow (THB)": [-100_000.0, 30_000.0, 50_000.0],
@@ -147,29 +153,30 @@ with tab_cf:
     flows = st.data_editor(
         st.session_state["cf_table"], key="cf_editor", num_rows="dynamic", use_container_width=True,
         column_config={
-            "Cash flow (THB)": st.column_config.NumberColumn(format="%.2f", required=True),
-            "Times": st.column_config.NumberColumn(min_value=1, max_value=600, step=1, format="%d",
-                                                   default=1, required=True),
+            "Cash flow (THB)": st.column_config.NumberColumn(t("Cash flow (THB)"), format="%.2f",
+                                                             required=True),
+            "Times": st.column_config.NumberColumn(t("Times"), min_value=1, max_value=600, step=1,
+                                                   format="%d", default=1, required=True),
         },
     )
     flows = flows.dropna()
     expanded = [cf for cf, times in zip(flows["Cash flow (THB)"], flows["Times"]) for _ in range(int(times))]
-    rate = st.number_input("Discount rate per period (%)", value=8.0, step=0.5, format="%.4f")
+    rate = st.number_input(t("Discount rate per period (%)"), value=8.0, step=0.5, format="%.4f")
 
     if len(expanded) < 2:
-        st.info("Enter CF0 and at least one later cash flow.")
+        st.info(t("Enter CF0 and at least one later cash flow."))
     else:
         m1, m2, m3 = st.columns(3)
         m1.metric("NPV", f"{npv(rate / 100, expanded):,.2f}",
-                  help="Value today of all cash flows at the discount rate. Above 0 = worth doing.")
+                  help=t("Value today of all cash flows at the discount rate. Above 0 = worth doing."))
         try:
-            m2.metric("IRR per period", f"{irr(expanded) * 100:.4f}%",
-                      help="The rate at which NPV = 0.")
+            m2.metric(t("IRR per period"), f"{irr(expanded) * 100:.4f}%",
+                      help=t("The rate at which NPV = 0."))
         except ValueError as e:
-            m2.metric("IRR per period", "–")
-            st.warning(str(e))
-        m3.metric("Periods", f"{len(expanded) - 1}")
-        st.caption("Cash flows in order: " + ", ".join(f"{cf:,.0f}" for cf in expanded[:24])
+            m2.metric(t("IRR per period"), "–")
+            st.warning(t(str(e)))
+        m3.metric(t("Periods"), f"{len(expanded) - 1}")
+        st.caption(t("Cash flows in order:") + " " + ", ".join(f"{cf:,.0f}" for cf in expanded[:24])
                    + (" …" if len(expanded) > 24 else ""))
 
 # ---------- rate conversion ----------
@@ -179,14 +186,14 @@ with tab_rate:
                "Weekly (52)": 52, "Daily (365)": 365, "Continuous": None}
     left, right = st.columns(2)
     with left:
-        st.markdown("**Nominal → effective (EAR)**")
-        nom = st.number_input("Nominal rate per year (%)", value=12.0, step=0.25, format="%.4f")
-        m = options[st.selectbox("Compounded", list(options), index=3, key="rate_m1")]
-        st.metric("Effective rate per year", f"{effective_rate(nom, m):.4f}%")
+        st.markdown("**" + t("Nominal → effective (EAR)") + "**")
+        nom = st.number_input(t("Nominal rate per year (%)"), value=12.0, step=0.25, format="%.4f")
+        m = options[st.selectbox(t("Compounded"), list(options), index=3, key="rate_m1", format_func=t)]
+        st.metric(t("Effective rate per year"), f"{effective_rate(nom, m):.4f}%")
     with right:
-        st.markdown("**Effective → nominal**")
-        eff = st.number_input("Effective rate per year (%)", value=12.0, step=0.25, format="%.4f")
-        m2 = options[st.selectbox("Compounded", list(options), index=3, key="rate_m2")]
-        st.metric("Nominal rate per year", f"{nominal_rate(eff, m2):.4f}%")
-    st.caption("A bank quoting 12% compounded monthly really pays 12.68% a year. Compare offers "
-               "using the effective rate.")
+        st.markdown("**" + t("Effective → nominal") + "**")
+        eff = st.number_input(t("Effective rate per year (%)"), value=12.0, step=0.25, format="%.4f")
+        m2 = options[st.selectbox(t("Compounded"), list(options), index=3, key="rate_m2", format_func=t)]
+        st.metric(t("Nominal rate per year"), f"{nominal_rate(eff, m2):.4f}%")
+    st.caption(t("A bank quoting 12% compounded monthly really pays 12.68% a year. Compare offers "
+                 "using the effective rate."))

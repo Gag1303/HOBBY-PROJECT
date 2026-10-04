@@ -27,12 +27,16 @@ Double-click `run_app.bat`, or run:
 ```
 streamlit run app.py
 ```
-It opens at http://localhost:8501. The home page shows all 6 modules. In the sidebar each module
+It opens at http://localhost:8501. Switch between **English | ไทย** at the top of the sidebar;
+the choice is saved in `user_settings.json` (not uploaded to GitHub), so it stays after a
+refresh or restart. The home page shows all 6 modules. In the sidebar each module
 is a section you can open and close; the module of the page you are on opens by itself.
 
 ## Project layout
 - `app.py` – starts the app and draws the sidebar menu
 - `cfp_modules.py` – names and descriptions of the 6 modules (used by the menu and home page)
+- `i18n.py` / `i18n_th.py` – English/Thai switch and the Thai translations. Write on-screen text
+  as `t("English text")` and add its Thai version to `i18n_th.py`
 - `home.py` – home page with the 6 modules
 - `calculators/` – financial calculator (`fincalc.py` maths, `financial_calculator.py` page)
 - `moduleN_<topic>/` – code and README for each module
