@@ -57,7 +57,7 @@ else:
                                        "that period. On: you sell the part above target.")
 st.caption(STRATEGY_HELP[strategy])
 
-# ---------- portfolio: total money box, fund table, summary ----------
+# ---------- portfolio: total money box and fund table ----------
 
 st.markdown("#### Portfolio")
 label, default_total = {
@@ -66,72 +66,127 @@ label, default_total = {
     "VCA": ("Total target growth each period (THB)", 5_000),
 }[strategy]
 total_box = st.number_input(label, min_value=0, value=default_total, step=500, format="%d",
-                            key=f"sim_total_{strategy}",
-                            help="Funds entered as % get that share of this amount.")
+                            key=f"sim_total_{strategy}")
+
+latest_nav = dict(zip(funds["symbol"], funds["navPerUnit"]))
+latest_nav_date = dict(zip(funds["symbol"], funds["navDate"]))
+COLS = ["Fund", "Weight %", "Amount (THB)", "Units"]
+
+
+def changed(new, old) -> bool:
+    if pd.isna(new) and pd.isna(old):
+        return False
+    return pd.isna(new) != pd.isna(old) or abs(float(new) - float(old)) > 1e-6
+
+
+def resolve(edited: pd.DataFrame, before: pd.DataFrame, total: float) -> pd.DataFrame:
+    """Keep Weight %, Amount (THB) and Units in step after an edit.
+
+    Whichever of the three the user changed in a row wins and the other two are recalculated
+    (THB = weight x total; units = THB / the fund's latest NAV). Rows the user hasn't set
+    ("auto") share whatever weight is left equally, so 5 untouched funds get 20% each.
+    """
+    df = edited.copy()
+    for c in ["Weight %", "Amount (THB)", "Units"]:
+        df[c] = pd.to_numeric(df[c], errors="coerce")
+    df["auto"] = df["auto"].astype("boolean").fillna(True).astype(bool) if "auto" in df else True
+    for i in df.index:
+        old = before.loc[i] if i in before.index else None
+        nav = latest_nav.get(symbol_of(df.at[i, "Fund"]) if isinstance(df.at[i, "Fund"], str) else "")
+        w, a, u = df.at[i, "Weight %"], df.at[i, "Amount (THB)"], df.at[i, "Units"]
+        if old is None:  # new row: whatever the user typed decides, empty = auto
+            edited_col = ("Units" if pd.notna(u) and u > 0 else "Amount (THB)" if pd.notna(a) and a > 0
+                          else "Weight %" if pd.notna(w) and w > 0 else None)
+        else:
+            edited_col = next((c for c in ["Units", "Amount (THB)", "Weight %"]
+                               if changed(df.at[i, c], old[c])), None)
+        if edited_col and pd.isna(df.at[i, edited_col]):
+            df.at[i, "auto"] = True  # the user cleared the cell: hand the row back to auto
+        elif edited_col == "Units" and nav and total:
+            df.at[i, "Weight %"], df.at[i, "auto"] = u * nav / total * 100, False
+        elif edited_col == "Amount (THB)" and total:
+            df.at[i, "Weight %"], df.at[i, "auto"] = a / total * 100, False
+        elif edited_col == "Weight %":
+            df.at[i, "auto"] = False
+    has_fund = df["Fund"].notna()
+    manual = has_fund & ~df["auto"]
+    auto = has_fund & df["auto"]
+    left = max(0.0, 100 - df.loc[manual, "Weight %"].fillna(0).sum())
+    df.loc[auto, "Weight %"] = left / auto.sum() if auto.any() else 0
+    df["Weight %"] = df["Weight %"].fillna(0).round(4)
+    df["Amount (THB)"] = (df["Weight %"] / 100 * total).round(2)
+    navs = df["Fund"].map(lambda f: latest_nav.get(symbol_of(f)) if isinstance(f, str) else None)
+    df["Units"] = (df["Amount (THB)"] / pd.to_numeric(navs, errors="coerce")).round(4)
+    return df[COLS + ["auto"]]
+
 
 if "sim_portfolio" not in st.session_state:
-    st.session_state["sim_portfolio"] = pd.DataFrame([
-        {"Fund": by_symbol.get("ES-GQG"), "Amount (THB)": 0, "Weight %": 60.0},
-        {"Fund": by_symbol.get("SCBSET"), "Amount (THB)": 0, "Weight %": 40.0},
-    ]).dropna(subset=["Fund"])
+    st.session_state["sim_portfolio"] = pd.DataFrame(
+        [{"Fund": by_symbol.get(s), "auto": True} for s in ["ES-GQG", "SCBSET"] if s in by_symbol],
+        columns=COLS + ["auto"])
+# Missing columns (e.g. a portfolio started from Fund detail) are filled in by resolve().
+base = st.session_state["sim_portfolio"].reindex(columns=COLS + ["auto"])
+if base["auto"].isna().all():
+    base["auto"] = True
+base = resolve(base, base, total_box)  # e.g. the total changed: refresh THB and units
+
+if st.button("⚖️ Split equally", help="Give every fund the same weight."):
+    base = resolve(base.assign(auto=True), base.assign(auto=True), total_box)
+    st.session_state["sim_portfolio"] = base
+    st.session_state.pop("sim_editor", None)
+    st.rerun()
+
 edited = st.data_editor(
-    st.session_state["sim_portfolio"], key="sim_editor", num_rows="dynamic", hide_index=True,
-    use_container_width=True,
+    base, key="sim_editor", num_rows="dynamic", hide_index=True, use_container_width=True,
+    column_order=COLS,  # "auto" stays hidden
     column_config={
         "Fund": st.column_config.SelectboxColumn("Fund (type to search)", options=options,
                                                  required=True, width="large"),
+        "Weight %": st.column_config.NumberColumn("Weight %", min_value=0, max_value=100,
+                                                  step=0.5, format="%.1f%%"),
         "Amount (THB)": st.column_config.NumberColumn("Amount (THB)", min_value=0, step=500,
-                                                      format="%d", default=0),
-        "Weight %": st.column_config.NumberColumn("or Weight %", min_value=0, max_value=100,
-                                                  step=5, format="%g%%", default=0),
+                                                      format="%.0f"),
+        "Units": st.column_config.NumberColumn("Units", min_value=0, format="%.4f",
+                                               help="Units at the fund's latest NAV."),
     },
 )
-st.caption("For each fund fill in **either** a THB amount **or** a weight % of the total above, "
-           "and leave the other at 0 (if both are filled, the THB amount is used). Add a row with the + under the table, "
-           f"delete with the checkbox and 🗑. Up to {MAX_FUNDS} funds.")
+resolved = resolve(edited, base, total_box)
+if not resolved[COLS].equals(base[COLS]) or not resolved.index.equals(base.index):
+    st.session_state["sim_portfolio"] = resolved.reset_index(drop=True)
+    st.session_state.pop("sim_editor", None)  # show the recalculated table
+    st.rerun()
+st.session_state["sim_portfolio"] = base
 
-rows = edited.dropna(subset=["Fund"]).copy()
-rows["Amount (THB)"] = pd.to_numeric(rows["Amount (THB)"], errors="coerce").fillna(0)
-rows["Weight %"] = pd.to_numeric(rows["Weight %"], errors="coerce").fillna(0)
-rows["by_amount"] = rows["Amount (THB)"] > 0
-rows["THB"] = rows["Amount (THB)"].where(rows["by_amount"], rows["Weight %"] / 100 * total_box)
-rows = rows[rows["THB"] > 0]
-rows["symbol"] = rows["Fund"].map(symbol_of)
-alloc = rows.groupby("symbol", sort=False).agg(  # merge duplicate funds
-    Fund=("Fund", "first"), THB=("THB", "sum"),
-    entered=("by_amount", lambda b: "THB" if b.all() else ("%" if not b.any() else "THB + %")))
-if alloc.empty:
-    st.info("Add at least one fund with a THB amount or a weight above 0.")
+nav_dates = {latest_nav_date[symbol_of(f)] for f in base["Fund"].dropna() if symbol_of(f) in latest_nav_date}
+st.caption(
+    "Change **any one** of Weight %, Amount or Units and the other two follow. Funds you haven't "
+    "set share the rest of the 100% equally. Units use each fund's latest NAV"
+    + (f" ({max(nav_dates):%d %b %Y})" if nav_dates else "")
+    + f". Add a row with the + under the table, delete with the checkbox and 🗑. Up to {MAX_FUNDS} funds."
+)
+
+rows = base[base["Fund"].notna() & (base["Weight %"] > 0)]
+weights = rows.groupby(rows["Fund"].map(symbol_of), sort=False)["Weight %"].sum()  # merge duplicates
+if weights.empty:
+    st.info("Add at least one fund.")
     st.stop()
-if len(alloc) > MAX_FUNDS:
+if len(weights) > MAX_FUNDS:
     st.warning(f"Only the first {MAX_FUNDS} funds are used.")
-    alloc = alloc.iloc[:MAX_FUNDS]
-
-amount = alloc["THB"].sum()
-alloc["Share"] = alloc["THB"] / amount * 100
-summary = pd.concat([
-    alloc[["Fund", "entered", "THB", "Share"]],
-    pd.DataFrame([{"Fund": "Total invested", "entered": "", "THB": amount, "Share": 100.0}]),
-], ignore_index=True)
-st.dataframe(summary.style.format({"THB": "{:,.0f}", "Share": "{:.1f}%"}), hide_index=True,
-             use_container_width=True,
-             column_config={"Fund": "Investment summary", "entered": "Entered as",
-                            "THB": {"Lump sum": "Amount (THB)", "DCA": "Each period (THB)",
-                                    "VCA": "Target growth each period (THB)"}[strategy],
-                            "Share": "Share"})
-
-leftover = total_box - amount
-if not rows["by_amount"].all():  # the total box matters only when some fund uses %
-    if leftover > 0.5:
-        st.info(f"{leftover:,.0f} THB of the {total_box:,.0f} THB total is not given to any fund, "
-                f"so it is not invested. Simulating {amount:,.0f} THB.")
-    elif leftover < -0.5:
-        st.warning(f"The funds add up to {amount:,.0f} THB, which is {-leftover:,.0f} THB more "
-                   f"than the {total_box:,.0f} THB total. Simulating {amount:,.0f} THB.")
+    weights = weights.iloc[:MAX_FUNDS]
+weight_sum = weights.sum()
+amount = weight_sum / 100 * total_box
+if weight_sum < 99.95:
+    st.info(f"Weights add up to {weight_sum:.1f}%, so {total_box - amount:,.0f} THB of the "
+            f"{total_box:,.0f} THB total is not invested. Simulating {amount:,.0f} THB.")
+elif weight_sum > 100.05:
+    st.warning(f"Weights add up to {weight_sum:.1f}%, so the funds need {amount:,.0f} THB, "
+               f"{amount - total_box:,.0f} THB more than the total. Simulating {amount:,.0f} THB.")
 else:
-    st.caption(f"Every fund has a THB amount, so the total box isn't used. "
-               f"Simulating {amount:,.0f} THB.")
-weights = alloc["THB"] / amount * 100
+    st.caption(f"**Total: 100% · {amount:,.0f} THB**")
+if amount <= 0:
+    st.info("Set a total amount above 0.")
+    st.stop()
+weights = weights / weight_sum * 100
 
 with st.spinner("Loading fund history ..."):
     histories = {s: load_full_history(s, last_date) for s in weights.index}

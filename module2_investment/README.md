@@ -27,9 +27,10 @@ Thai mutual funds** in the sidebar. It has four tabs:
 - **Fund companies** – fund size and number of funds per asset management company
 
 ### Investment simulator (separate page: Module 2 · Investment planning → Investment simulator)
-Build a portfolio (up to 8 funds). Type a total amount at the top, then for each fund enter
-either a THB amount or a weight % of that total; a summary under the table shows what each fund
-gets and the total invested. Then back-test Lump sum,
+Build a portfolio (up to 8 funds). Type a total amount at the top; each fund has Weight %,
+Amount (THB) and Units (at the latest NAV) that stay in step: change any one and the other
+two follow. Funds you haven't set share the rest of the 100% equally (5 funds → 20% each),
+and "Split equally" resets every fund to an equal share. Then back-test Lump sum,
 DCA (same amount each period) or VCA (value averaging: top up to a target that grows each
 period) on any date range, monthly / weekly / quarterly. Each amount invested is split by the
 target weights; optional rebalancing (yearly or every period) brings drifted weights back.
