@@ -52,8 +52,8 @@ python -m module2_investment.fetch_funds amcs                      # list of fun
 CSV files are saved with UTF-8 BOM so Thai names display correctly in Excel.
 
 ## Files
-- `dashboard.py` – the fund dashboard page (Streamlit)
-- `simulator.py` – the investment simulator page
+- The two pages are in `interface/module2_investment/`: `dashboard.py` (fund dashboard) and
+  `simulator.py` (investment simulator)
 - `common.py` – cached data loading, colors and formatting shared by both pages
 - `client.py` – functions that call the API (reuse these in your own scripts/notebooks)
 - `tables.py` – cleans API data into tables and calculates return/risk numbers

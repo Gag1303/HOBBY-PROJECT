@@ -8,7 +8,7 @@ from i18n import t
 from user_settings import load_settings, save_setting
 
 me = auth.current_user()
-if not auth.is_superadmin(me):  # app.py already hides this page; double check anyway
+if not auth.is_superadmin(me):  # navigation.py already hides this page; double check anyway
     st.error(t("Only a superadmin can open this page."))
     st.stop()
 
@@ -65,6 +65,9 @@ with tab_add:
 
 with tab_edit:
     who = st.selectbox(t("Account"), list(users), key="edit_who")
+    if who is None:  # no accounts yet; the Delete tab has nothing to show either
+        st.caption(t("There is no account yet."))
+        st.stop()
     r = users[who]
     with st.form(f"edit_user_{who}"):  # one form per account, so its fields reload on switch
         name = st.text_input(t("Display name"), value=r["name"])

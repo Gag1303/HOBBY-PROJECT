@@ -54,21 +54,33 @@ of the app completely, so typing their URL does not open them either.
   (this removes all accounts).
 
 ## Project layout
-- `app.py` – starts the app, checks the login and draws the sidebar menu
-- `auth.py` – log in, roles and access areas; `admin/` – Accounts and access page, My account page
-- `career/` – CFP career guide (`content.py` summary text, `guide.py` page)
-- `user_settings.py` – saves personal settings (language, CFP progress) to `user_settings.json`
+The project is split in two:
+
+**`interface/` – everything you see.** Edit here to change how the app looks.
+- `navigation.py` – which pages exist and the sidebar menu
+- `home.py` – home page with the 6 modules
+- `login.py` – log in screen (only used when login is switched on)
+- `admin/` – Accounts and access page, My account page
+- `calculators/financial_calculator.py` – financial calculator page
+- `career/guide.py` – CFP career guide page
+- `module2_investment/` – Thai mutual funds page (`dashboard.py`) and investment simulator page (`simulator.py`)
+
+**Everything else – the logic behind the pages.** Edit here to change data or calculations.
+- `app.py` – starts the app (a short launcher that calls `interface/navigation.py`)
+- `auth.py` – log in checks, roles and access areas
+- `career/content.py` – the CFP career guide text (summary of the TFPA documents)
+- `calculators/fincalc.py` – the maths of the financial calculator
+- `moduleN_<topic>/` – data and calculations for each module, plus its README
 - `cfp_modules.py` – names and descriptions of the 6 modules (used by the menu and home page)
 - `i18n.py` / `i18n_th.py` – English/Thai switch and the Thai translations. Write on-screen text
   as `t("English text")` and add its Thai version to `i18n_th.py`
-- `home.py` – home page with the 6 modules
-- `calculators/` – financial calculator (`fincalc.py` maths, `financial_calculator.py` page)
-- `moduleN_<topic>/` – code and README for each module
+- `user_settings.py` – saves personal settings (language, CFP progress) to `user_settings.json`
 - `data/` – downloaded files (not uploaded to GitHub)
 
 ## Adding a new module
-1. Create a folder, e.g. `module3_insurance/`, with an empty `__init__.py` and a page file.
-2. Add an `st.Page(...)` for it under that module's number in `MODULE_PAGES` in `app.py`.
+1. Create a folder for its logic, e.g. `module3_insurance/` with an empty `__init__.py`.
+2. Put its page file in `interface/module3_insurance/` and add an `st.Page(...)` for it under that
+   module's number in `module_pages` in `interface/navigation.py`.
 3. To give the module's home-page card an "Open" button, set `home_page` for that module in
    `cfp_modules.py` (and update its description).
 

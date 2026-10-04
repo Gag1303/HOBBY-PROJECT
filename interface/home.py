@@ -15,11 +15,11 @@ if auth.can(user, "tools") or auth.can(user, "career"):
     with st.container(border=True):
         st.markdown(t("**Tools** · for every module"))
         if auth.can(user, "tools"):
-            st.page_link("calculators/financial_calculator.py",
+            st.page_link("interface/calculators/financial_calculator.py",
                          label=t("Financial calculator: TVM, NPV / IRR, interest rate conversion"),
                          icon="🧮")
         if auth.can(user, "career"):
-            st.page_link("career/guide.py",
+            st.page_link("interface/career/guide.py",
                          label=t("CFP career guide: path to CFP, ethics, renewal, working abroad, "
                                  "TFPA documents"), icon="🎓")
 

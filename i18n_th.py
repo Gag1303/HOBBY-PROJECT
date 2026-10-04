@@ -462,6 +462,7 @@ TH = {
         "นี่คือผู้ดูแลสูงสุดคนเดียวที่ใช้งานอยู่ กรุณาตั้งผู้ดูแลสูงสุดคนอื่นก่อน",
     "You cannot disable your own account.": "ไม่สามารถระงับบัญชีของตัวเองได้",
     "There is no other account to delete.": "ไม่มีบัญชีอื่นให้ลบ",
+    "There is no account yet.": "ยังไม่มีบัญชีผู้ใช้",
     "Yes, delete {u} and their saved progress. This cannot be undone.":
         "ยืนยันลบบัญชี {u} และความคืบหน้าที่บันทึกไว้ ไม่สามารถกู้คืนได้",
     "Account {u} added.": "เพิ่มบัญชี {u} แล้ว",

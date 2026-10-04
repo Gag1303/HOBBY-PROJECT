@@ -18,7 +18,7 @@ MODULES = [
     Module(2, "Investment planning", "การวางแผนการลงทุน",
            "Thai mutual fund data: latest NAV of every fund, full performance history, "
            "fund comparison, risk numbers. Portfolio simulator: Lump sum vs DCA vs VCA.",
-           "module2_investment/dashboard.py"),
+           "interface/module2_investment/dashboard.py"),
     Module(3, "Insurance planning", "การวางแผนการประกันภัย",
            "Ideas: life insurance needs calculator (income replacement / needs approach)."),
     Module(4, "Retirement planning", "การวางแผนเพื่อวัยเกษียณ",
