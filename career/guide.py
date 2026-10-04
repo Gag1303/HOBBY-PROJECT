@@ -85,6 +85,8 @@ with tab_docs:
 with tab_me:
     username = auth.current_user()["username"]
     all_progress = load_settings().get("cfp_progress", {})
+    if "trained" in all_progress:  # saved before accounts existed: it is this person's
+        all_progress = {username: all_progress}
     saved = all_progress.get(username, {})
     modules = [t("Module {n}", n=n) for n in range(1, 7)]
     papers = [t("Paper 1"), t("Paper 2"), t("Paper 3"), t("Paper 4 part 1"), t("Paper 4 part 2")]

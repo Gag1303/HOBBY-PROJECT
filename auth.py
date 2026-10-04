@@ -28,6 +28,11 @@ from user_settings import load_settings, save_setting
 
 USERS_FILE = Path(__file__).parent / "users.json"
 
+# Login on/off. While False the app opens straight in, everyone is treated as the superadmin
+# "local", and the login, account and admin pages are hidden. Set to True to require log in.
+LOGIN_ENABLED = False
+LOCAL_USER = {"username": "local", "name": "local", "role": "superadmin", "areas": [], "disabled": False}
+
 ROLES = ["superadmin", "user"]
 AREAS = ["tools", "career"] + [f"m{m.number}" for m in MODULES]
 
@@ -111,6 +116,8 @@ def current_user() -> dict | None:
     Read from users.json on every page run, so a change by the superadmin (disable, fewer areas)
     takes effect on that person's next click.
     """
+    if not LOGIN_ENABLED:
+        return dict(LOCAL_USER)
     username = st.session_state.get("auth_user")
     if not username:
         return None
@@ -180,9 +187,12 @@ def _setup_form() -> None:
             return
         save_users({username: new_account(name.strip() or username, "superadmin", AREAS, password)})
         # CFP progress saved before accounts existed belongs to this first account.
-        old = load_settings().get("cfp_progress")
-        if old and "trained" in old:
+        old = load_settings().get("cfp_progress") or {}
+        if "trained" in old:
             save_setting("cfp_progress", {username: old})
+        elif LOCAL_USER["username"] in old:
+            old[username] = old.pop(LOCAL_USER["username"])
+            save_setting("cfp_progress", old)
         _start_session(username)
         st.rerun()
 

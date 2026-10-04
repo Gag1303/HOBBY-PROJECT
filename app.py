@@ -5,7 +5,8 @@ Run it with:
 (or double-click run_app.bat). It opens in your browser at http://localhost:8501
 and only runs on this computer.
 
-Everyone has to log in (see auth.py). The first time, the app asks you to create the superadmin
+Log in is switched off for now (auth.LOGIN_ENABLED = False): the app opens straight in.
+When it is switched on, everyone has to log in (see auth.py). The first time, the app asks you to create the superadmin
 account. Each page belongs to an area ('tools', 'career', 'm1' ... 'm6'); an account only gets
 the pages of the areas it may see, and the superadmin also gets the Admin page.
 
@@ -56,22 +57,25 @@ MODULE_PAGES = {
 tools = TOOL_PAGES if auth.can(user, "tools") else []
 career = CAREER_PAGES if auth.can(user, "career") else []
 modules = {m.number: MODULE_PAGES.get(m.number, []) for m in MODULES if auth.can(user, f"m{m.number}")}
-admin_pages = [admin] if auth.is_superadmin(user) else []
+admin_pages = [admin] if auth.LOGIN_ENABLED and auth.is_superadmin(user) else []
+account_pages = [my_account] if auth.LOGIN_ENABLED else []
 
-all_pages = [home, my_account] + admin_pages + tools + career + [p for ps in modules.values() for p in ps]
+all_pages = [home] + account_pages + admin_pages + tools + career + [p for ps in modules.values() for p in ps]
 current = st.navigation(all_pages, position="hidden")  # we draw our own menu below
 
 # Sidebar menu: account, language switch, Home, Tools, Career, then one section per module that
 # opens and closes. The module of the page you are on starts open.
 with st.sidebar:
-    c1, c2 = st.columns([3, 2])
-    c1.markdown(f"👤 **{user['name']}**  \n:gray[{user['role']}]")
-    if c2.button(t("Log out"), use_container_width=True):
-        auth.logout()
-        st.rerun()
+    if auth.LOGIN_ENABLED:
+        c1, c2 = st.columns([3, 2])
+        c1.markdown(f"👤 **{user['name']}**  \n:gray[{user['role']}]")
+        if c2.button(t("Log out"), use_container_width=True):
+            auth.logout()
+            st.rerun()
     language_switcher()
     st.page_link(home, icon=home.icon)
-    st.page_link(my_account, icon=my_account.icon)
+    for p in account_pages:
+        st.page_link(p, icon=p.icon)
     if admin_pages:
         st.caption(t("ADMIN"))
         st.page_link(admin, icon=admin.icon)

@@ -38,7 +38,8 @@ refresh or restart. The home page shows all 6 modules. In the sidebar each modul
 is a section you can open and close; the module of the page you are on opens by itself.
 
 ### Accounts and access
-Everyone has to log in. The first time you open the app it asks you to create the
+**Switched off for now:** the app opens without a login. To switch it on, set
+`LOGIN_ENABLED = True` in `auth.py` and restart the app. Then everyone has to log in. The first time you open the app it asks you to create the
 **superadmin** account. The superadmin sees every page and, on **Accounts and access**,
 can add accounts and tick which areas each one sees (Tools, Career guide, Module 1-6),
 disable or delete accounts, and reset passwords. Pages an account may not see are left out
