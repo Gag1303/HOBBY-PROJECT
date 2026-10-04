@@ -10,7 +10,7 @@ from module2_investment.tables import add_growth, amc_table, latest_nav, to_data
 
 # Colors (validated colorblind-safe order). Up/down use blue/red rather than color alone:
 # numbers always carry a +/- sign too.
-SERIES_COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"]
+SERIES_COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"]
 UP_COLOR, DOWN_COLOR = "#2a78d6", "#e34948"
 
 DATA_NOTE = ("Data: thaimutualfund.com (AIMC) via api.settrade.com. "
@@ -51,6 +51,18 @@ def last_date_or_stop() -> date:
 
 
 # ---------- formatting ----------
+
+LABEL_SEP = "  ·  "
+
+
+def fund_label(symbol: str, name: str | None) -> str:
+    """'SYMBOL  ·  Fund name' as shown in fund pickers. symbol_of() reverses it."""
+    return f"{symbol}{LABEL_SEP}{name or ''}"
+
+
+def symbol_of(label: str) -> str:
+    return label.split(LABEL_SEP)[0]
+
 
 def csv_bytes(df: pd.DataFrame) -> bytes:
     return df.to_csv(index=False).encode("utf-8-sig")  # BOM so Excel shows Thai text

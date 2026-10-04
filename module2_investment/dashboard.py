@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from module2_investment.common import (
-    DATA_NOTE, DOWN_COLOR, SERIES_COLORS, UP_COLOR, csv_bytes, last_date_or_stop,
+    DATA_NOTE, DOWN_COLOR, SERIES_COLORS, UP_COLOR, csv_bytes, fund_label, last_date_or_stop,
     load_full_history, load_market, signed,
 )
 from module2_investment.tables import (
@@ -197,7 +197,10 @@ with tab_detail:
         )
         st.plotly_chart(fig, use_container_width=True)
         if st.button(f"📈 Simulate Lump sum / DCA / VCA in {sym}"):
-            st.session_state["sim_symbol"] = sym
+            # Start the simulator with a portfolio of just this fund.
+            st.session_state["sim_portfolio"] = pd.DataFrame(
+                [{"Fund": fund_label(sym, last["nameEn"]), "Weight %": 100}])
+            st.session_state.pop("sim_editor", None)  # forget edits to the previous portfolio
             st.switch_page("module2_investment/simulator.py")
 
         c1, c2 = st.columns(2)

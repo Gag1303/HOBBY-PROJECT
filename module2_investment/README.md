@@ -27,10 +27,13 @@ Thai mutual funds** in the sidebar. It has four tabs:
 - **Fund companies** – fund size and number of funds per asset management company
 
 ### Investment simulator (separate page: Module 2 · Investment planning → Investment simulator)
-Back-test Lump sum, DCA (same amount each period) or VCA (value averaging: top up to a target
-that grows each period) on any fund and date range, monthly / weekly / quarterly. Shows
-money-weighted return (XIRR), every buy/sell, and a side-by-side comparison of all three
-strategies. The "Simulate" button on Fund detail opens it with that fund selected.
+Build a portfolio (a list of up to 8 funds with target weights), then back-test Lump sum,
+DCA (same amount each period) or VCA (value averaging: top up to a target that grows each
+period) on any date range, monthly / weekly / quarterly. Each amount invested is split by the
+target weights; optional rebalancing (yearly or every period) brings drifted weights back.
+Shows money-weighted return (XIRR), value and weight drift by fund, every buy/sell, and a
+side-by-side comparison of all three strategies. The "Simulate" button on Fund detail opens it
+with a portfolio of just that fund.
 
 ## Command-line usage
 Run from the project folder:
@@ -51,7 +54,7 @@ CSV files are saved with UTF-8 BOM so Thai names display correctly in Excel.
 - `common.py` – cached data loading, colors and formatting shared by both pages
 - `client.py` – functions that call the API (reuse these in your own scripts/notebooks)
 - `tables.py` – cleans API data into tables and calculates return/risk numbers
-- `simulate.py` – Lump sum / DCA / VCA back-test and XIRR
+- `simulate.py` – portfolio Lump sum / DCA / VCA back-test with rebalancing, and XIRR
 - `fetch_funds.py` – command-line tool that saves CSV/Excel files
 
 ## Notes

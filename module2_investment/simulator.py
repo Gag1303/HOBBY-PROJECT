@@ -1,7 +1,7 @@
 """CFP Module 2 (Investment Planning) - investment simulator page.
 
-Back-test Lump sum, DCA and VCA on any Thai mutual fund's real NAV history.
-The calculations live in simulate.py; this file is only the page.
+Back-test Lump sum, DCA and VCA on a portfolio of Thai mutual funds using their real NAV
+history. The calculations live in simulate.py; this file is only the page.
 """
 
 import pandas as pd
@@ -9,9 +9,14 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from module2_investment.common import (
-    DATA_NOTE, SERIES_COLORS, last_date_or_stop, load_full_history, load_market, signed,
+    DATA_NOTE, SERIES_COLORS, fund_label, last_date_or_stop, load_full_history, load_market,
+    signed, symbol_of,
 )
-from module2_investment.simulate import FREQUENCIES, STRATEGIES, simulate, trade_dates
+from module2_investment.simulate import (
+    FREQUENCIES, REBALANCING, STRATEGIES, align_prices, simulate, trade_dates,
+)
+
+MAX_FUNDS = len(SERIES_COLORS)  # one distinct color per fund
 
 STRATEGY_HELP = {
     "Lump sum": "Invest the whole amount once, on the start date.",
@@ -20,40 +25,85 @@ STRATEGY_HELP = {
            "top up whatever is needed to reach the target, so you buy more when prices fall and "
            "less (or nothing) when they rise.",
 }
+REBALANCE_HELP = ("Every amount invested is split by the target weights. Over time the funds that "
+                  "grew most take a bigger share. Rebalancing sells some of those and buys the "
+                  "others to get back to the target weights.")
 
 st.title("📈 Investment simulator")
-st.caption("What would have happened if you had invested in a fund with Lump sum, DCA or VCA? "
-           "Uses the fund's real NAV history, dividends reinvested.")
+st.caption("What would have happened if you had invested in a portfolio of funds with Lump sum, "
+           "DCA or VCA? Uses the funds' real NAV history, dividends reinvested.")
 st.sidebar.caption(DATA_NOTE)
 
 last_date = last_date_or_stop()
 with st.spinner("Loading fund list ..."):
     market = load_market(last_date)
-
 funds = market.sort_values("symbol")
-labels = dict(zip(funds["symbol"], funds["symbol"] + "  ·  " + funds["nameEn"].fillna("")))
-choices = list(labels)
-if st.session_state.get("sim_symbol") not in labels:  # first visit, or fund no longer listed
-    st.session_state["sim_symbol"] = "ES-GQG" if "ES-GQG" in labels else choices[0]
-sym = st.selectbox("Fund (type to search)", choices, format_func=labels.get, key="sim_symbol")
+options = [fund_label(s, n) for s, n in zip(funds["symbol"], funds["nameEn"])]
+by_symbol = {symbol_of(o): o for o in options}
 
-with st.spinner(f"Loading full history of {sym} ..."):
-    hist = load_full_history(sym, last_date)
-if len(hist) < 2:
-    st.warning("Not enough history for this fund.")
+# ---------- portfolio ----------
+
+st.markdown("#### Portfolio")
+if "sim_portfolio" not in st.session_state:
+    st.session_state["sim_portfolio"] = pd.DataFrame([
+        {"Fund": by_symbol.get("ES-GQG"), "Weight %": 60},
+        {"Fund": by_symbol.get("SCBSET"), "Weight %": 40},
+    ]).dropna()
+edited = st.data_editor(
+    st.session_state["sim_portfolio"], key="sim_editor", num_rows="dynamic", hide_index=True,
+    use_container_width=True,
+    column_config={
+        "Fund": st.column_config.SelectboxColumn("Fund (type to search)", options=options,
+                                                 required=True, width="large"),
+        "Weight %": st.column_config.NumberColumn("Weight %", min_value=0, max_value=100, step=5,
+                                                  format="%d%%", required=True),
+    },
+)
+st.caption(f"Add a row with the + under the table, delete with the checkbox and 🗑. Up to {MAX_FUNDS} funds.")
+
+rows = edited.dropna(subset=["Fund", "Weight %"])
+rows = rows[rows["Weight %"] > 0]
+weights = rows.groupby(rows["Fund"].map(symbol_of), sort=False)["Weight %"].sum()  # merge duplicates
+if weights.empty:
+    st.info("Add at least one fund with a weight above 0%.")
+    st.stop()
+if len(weights) > MAX_FUNDS:
+    st.warning(f"Only the first {MAX_FUNDS} funds are used.")
+    weights = weights.iloc[:MAX_FUNDS]
+total = weights.sum()
+if abs(total - 100) > 0.01:
+    st.info(f"Weights add up to {total:g}%, so they are scaled to 100% "
+            f"({', '.join(f'{s} {w / total * 100:.1f}%' for s, w in weights.items())}).")
+weights = weights / total * 100
+
+with st.spinner("Loading fund history ..."):
+    histories = {s: load_full_history(s, last_date) for s in weights.index}
+missing = [s for s, h in histories.items() if len(h) < 2]
+if missing:
+    st.warning(f"No history for: {', '.join(missing)}")
+    st.stop()
+prices = align_prices({s: h.set_index("navDate")["growth"] for s, h in histories.items()})
+if len(prices) < 2:
+    st.warning("These funds have no dates in common.")
     st.stop()
 
-prices = hist.set_index("navDate")["growth"]
 first_day, last_day = prices.index[0].date(), prices.index[-1].date()
 default_start = max(first_day, (prices.index[-1] - pd.DateOffset(years=5)).date())
+youngest = max(histories, key=lambda s: histories[s]["navDate"].iloc[0])
 
+# ---------- strategy ----------
+
+st.markdown("#### Strategy")
 c1, c2, c3 = st.columns([2, 1, 1])
-strategy = c1.radio("Strategy", STRATEGIES, index=1, horizontal=True)
+strategy = c1.radio("Strategy", STRATEGIES, index=1, horizontal=True, label_visibility="collapsed")
 start = c2.date_input("Start", value=default_start, min_value=first_day, max_value=last_day)
 end = c3.date_input("End", value=last_day, min_value=first_day, max_value=last_day)
-st.caption(f"{STRATEGY_HELP[strategy]} Data for {sym} starts {first_day:%d %b %Y}.")
+note = f"Data starts {first_day:%d %b %Y}"
+if len(weights) > 1:
+    note += f" (the youngest fund, {youngest}, launched then)"
+st.caption(f"{STRATEGY_HELP[strategy]} {note}.")
 
-c1, c2, c3 = st.columns([2, 1, 1])
+c1, c2, c3, c4 = st.columns([2, 1, 1, 1])
 if strategy == "Lump sum":
     amount = c1.number_input("Amount (THB)", min_value=100, value=100_000, step=1_000, format="%d")
     frequency, allow_sell = "Monthly", False
@@ -61,18 +111,27 @@ else:
     label = "Amount each period (THB)" if strategy == "DCA" else "Target growth each period (THB)"
     amount = c1.number_input(label, min_value=100, value=5_000, step=500, format="%d")
     frequency = c2.selectbox("Every", list(FREQUENCIES))
-    allow_sell = strategy == "VCA" and c3.toggle(
+    allow_sell = strategy == "VCA" and c4.toggle(
         "Sell when above target", help="Off: when the portfolio is above target you just skip "
                                        "that period. On: you sell the part above target.")
+rebalance = "None"
+if len(weights) > 1:
+    choices = REBALANCING if strategy != "Lump sum" else ["None", "Yearly"]
+    rebalance = c3.selectbox("Rebalance", choices, help=REBALANCE_HELP)
 
 if start >= end:
     st.warning("Start date must be before the end date.")
     st.stop()
-timeline, trades, s = simulate(prices, start, end, strategy, amount, frequency, allow_sell)
+run = dict(frequency=frequency, weights=weights.to_dict(), rebalance=rebalance)
+timeline, trades, s, by_fund = simulate(prices, start, end, strategy, amount,
+                                        allow_sell=allow_sell, **run)
 if not s:
     st.warning("Not enough NAV data in this period.")
     st.stop()
 
+# ---------- results ----------
+
+st.markdown("#### Result")
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("Money invested", f"{s['Money in']:,.0f} THB")
 m2.metric("Value at end", f"{s['Value now']:,.0f} THB")
@@ -96,28 +155,53 @@ fig.update_layout(height=420, margin=dict(l=0, r=0, t=30, b=0), hovermode="x uni
                   legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom"))
 st.plotly_chart(fig, use_container_width=True)
 
-nav = hist.set_index("navDate")["navPerUnit"]
+if len(weights) > 1:
+    # Per-fund breakdown: where the money ended up, and how far the weights drifted.
+    window = prices.loc[timeline.index]
+    end_values = by_fund.iloc[-1]
+    breakdown = pd.DataFrame({
+        "Fund": [by_symbol.get(f, f) for f in weights.index],
+        "Target weight": weights.values,
+        "Value at end": end_values[weights.index].values,
+        "Weight at end": (end_values / end_values.sum() * 100)[weights.index].values,
+        "Fund return in period": ((window.iloc[-1] / window.iloc[0] - 1) * 100)[weights.index].values,
+    })
+    st.markdown("#### By fund")
+    st.dataframe(
+        breakdown.style.format({"Target weight": "{:.1f}%", "Value at end": "{:,.0f}",
+                                "Weight at end": "{:.1f}%", "Fund return in period": signed}),
+        hide_index=True, use_container_width=True,
+    )
+
+    fig = go.Figure([
+        go.Scatter(x=by_fund.index, y=by_fund[f], name=f, stackgroup="funds", mode="lines",
+                   line=dict(width=1, color=SERIES_COLORS[i]),
+                   hovertemplate=f"%{{y:,.0f}} THB<extra>{f}</extra>")
+        for i, f in enumerate(weights.index)
+    ])
+    fig.update_layout(title="Value by fund", height=380, margin=dict(l=0, r=0, t=40, b=0),
+                      hovermode="x unified", yaxis=dict(title="THB", tickformat=","),
+                      legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom",
+                                  traceorder="normal"))  # same order as the table
+    st.plotly_chart(fig, use_container_width=True)
+
 with st.expander(f"Every buy / sell ({s['Trades']})"):
-    rows = trades.assign(nav=trades["date"].map(nav))[["date", "nav", "cash", "valueAfter"]]
-    rows = rows[rows["cash"] != 0].style.format(
-        {"date": "{:%d %b %Y}", "nav": "{:.4f}", "cash": "{:+,.0f}", "valueAfter": "{:,.0f}"})
+    rows = trades[trades["cash"] != 0].style.format(
+        {"date": "{:%d %b %Y}", "cash": "{:+,.0f}", "valueAfter": "{:,.0f}"})
     st.dataframe(rows, hide_index=True, use_container_width=True, column_config={
-        "date": "Date",
-        "nav": "NAV",
-        "cash": "Cash in (+) / out (−)",
-        "valueAfter": "Portfolio value after",
+        "date": "Date", "cash": "Cash in (+) / out (−)", "valueAfter": "Portfolio value after",
     })
 
-# Same period, all three strategies, with comparable amounts.
+# Same period and portfolio, all three strategies, with comparable amounts.
 per_period = amount
 if strategy == "Lump sum":
-    n = len(trade_dates(prices, start, end, frequency))
-    per_period = amount / max(n, 1)
-dca = simulate(prices, start, end, "DCA", per_period, frequency)[2]
+    per_period = amount / max(len(trade_dates(prices, start, end, frequency)), 1)
+dca = simulate(prices, start, end, "DCA", per_period, **run)[2]
 results = {
-    "Lump sum": simulate(prices, start, end, "Lump sum", dca["Money in"])[2],
+    "Lump sum": simulate(prices, start, end, "Lump sum", dca["Money in"],
+                         **{**run, "rebalance": "None" if rebalance == "Every period" else rebalance})[2],
     "DCA": dca,
-    "VCA": simulate(prices, start, end, "VCA", per_period, frequency, allow_sell)[2],
+    "VCA": simulate(prices, start, end, "VCA", per_period, allow_sell=allow_sell, **run)[2],
 }
 table = pd.DataFrame(results).T[["Money in", "Value now", "Profit", "Profit %",
                                  "Return per year %", "Largest single top-up"]]
