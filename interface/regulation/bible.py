@@ -10,8 +10,7 @@ import streamlit as st
 
 from cfp_modules import MODULES
 from i18n import lang, t
-from regulation import topic_a
-from regulation.library import ENTRIES, find, modules_with_entries
+from regulation.library import ENTRIES, TABLES, find, modules_with_entries
 from regulation.model import ROLES, TOPICS
 
 TH = lang() == "th"
@@ -65,19 +64,19 @@ if module != ALL:
     m = MODULES[module - 1]
     st.info(t("Showing rules for Module {n} · {name}", n=module, name=m.name_th if TH else m.name_en))
 
-# ---------- topic A tables (only when topic A is in view and there is no search) ----------
+# ---------- summary tables of the topics in view (hidden while searching) ----------
 
-if not query and topic in (ALL, "A") and any(e.topic == "A" for e in results):
-    with st.expander("📋 " + t("What each licence may advise on"), expanded=topic == "A"):
-        st.markdown(markdown_table(
-            [t("Licence"), *(pick(c) for c in topic_a.SCOPE_COLUMNS)],
-            [[pick(name), *("✅" if ok else "–" for ok in allowed)] for name, allowed in topic_a.LICENCE_SCOPE]))
-        st.caption(t("Source: {src}", src=topic_a.SCOPE_TABLE.code) + " · " + pick(topic_a.SCOPE_TABLE.title))
-    with st.expander("🧭 " + t("Routes to becoming an IP"), expanded=topic == "A"):
-        st.markdown(markdown_table([t("If you have"), t("You still need")],
-                                   [[pick(have), pick(need)] for have, need in topic_a.IP_ROUTES]))
-        st.caption(t("Source: {src}", src=topic_a.QUALIFICATION_TABLES.code) + " · "
-                   + pick(topic_a.QUALIFICATION_TABLES.title) + " (" + t("pages 16–20") + ")")
+if not query:
+    shown_topics = {e.topic for e in results}
+    for tb in TABLES:
+        if tb.topic not in shown_topics:
+            continue
+        with st.expander(f"{tb.icon} {pick(tb.title)}", expanded=topic == tb.topic):
+            st.markdown(markdown_table(
+                [pick(h) for h in tb.header],
+                [[("✅" if c else "–") if isinstance(c, bool) else pick(c) for c in row] for row in tb.rows]))
+            note = f" ({pick(tb.note)})" if tb.note else ""
+            st.caption(t("Source: {src}", src=tb.source.code) + " · " + pick(tb.source.title) + note)
 
 # ---------- entries, grouped by topic ----------
 
@@ -106,5 +105,7 @@ for key, name in TOPICS.items():
             if e.is_stale():
                 st.warning(t("Not checked for over 6 months – compare it with the source before relying on it."))
 
-st.divider()
-st.caption(t("Topics B–E (conduct with clients, penalties, fund structure, fund rules) are coming next."))
+coming = [f"{k} · {pick(v)}" for k, v in TOPICS.items() if not any(e.topic == k for e in ENTRIES)]
+if coming:
+    st.divider()
+    st.caption(t("Coming next: {topics}", topics=", ".join(coming)))

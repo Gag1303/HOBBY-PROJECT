@@ -42,8 +42,8 @@ Sidebar → **REFERENCE → Law & Regulation**: SEC rules summarised in my own w
 Thai), each with its official source link, the date it took effect and the date I last checked it.
 Search and filter by topic, CFP module and role; each CFP module in the sidebar has a
 **Rules for this module** button that opens the page already filtered. Entries not checked for
-6 months are flagged. Topic A (licences & career path) is done; B–E (conduct with clients,
-penalties, fund structure, fund rules) come next. The SEC PDFs I read are kept only in
+6 months are flagged. Done: A (licences & career path), B (conduct with clients) and C (penalties);
+D (fund structure) and E (fund rules) come next. The SEC PDFs I read are kept only in
 `data/sec/` (not uploaded). Run `python -m regulation.library` to check every entry has its texts,
 sources and dates. This is a study reference, not legal advice.
 
@@ -80,7 +80,8 @@ The project is split in two:
 - `app.py` – starts the app (a short launcher that calls `interface/navigation.py`)
 - `auth.py` – log in checks, roles and access areas
 - `career/content.py` – the CFP career guide text (summary of the TFPA documents)
-- `regulation/` – the Law & Regulation entries (`topic_a.py`, …), the entry model (`model.py`) and
+- `regulation/` – the Law & Regulation entries (`topic_a.py`, `topic_b.py`, …), their sources (`sources.py`),
+  the entry model (`model.py`) and
   search / self-check (`library.py`)
 - `calculators/fincalc.py` – the maths of the financial calculator
 - `moduleN_<topic>/` – data and calculations for each module, plus its README

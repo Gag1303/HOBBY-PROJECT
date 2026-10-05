@@ -43,6 +43,18 @@ class Source:
 
 
 @dataclass(frozen=True)
+class Table:
+    """A summary table shown above a topic's entries (e.g. which licence may do what)."""
+    topic: str
+    icon: str
+    title: Text
+    header: tuple[Text, ...]
+    rows: tuple[tuple[Text | bool, ...], ...]  # a bool cell is shown as ✅ / –
+    source: Source
+    note: Text | None = None                   # e.g. which pages of the source
+
+
+@dataclass(frozen=True)
 class Entry:
     id: str          # e.g. "A01"; stable, so links and progress can point at it
     topic: str       # key of TOPICS

@@ -6,10 +6,12 @@ valid dates.
 
 from datetime import date
 
-from regulation import topic_a
-from regulation.model import ROLES, TOPICS, Entry
+from regulation import topic_a, topic_b, topic_c
+from regulation.model import ROLES, TOPICS, Entry, Table
 
-ENTRIES: list[Entry] = topic_a.ENTRIES  # topics B-E are added here as they are written
+# Topics D-E are added here as they are written.
+ENTRIES: list[Entry] = topic_a.ENTRIES + topic_b.ENTRIES + topic_c.ENTRIES
+TABLES: list[Table] = topic_a.TABLES + topic_c.TABLES
 
 
 def topics_with_entries() -> list[str]:
@@ -68,6 +70,16 @@ def problems() -> list[str]:
         found += [f"{where} module {m} is not 1-6" for m in e.modules if m not in range(1, 7)]
         if not e.modules:
             found.append(f"{where} no CFP module")
+    for tb in TABLES:
+        where = f"table {tb.title.get('en')}:"
+        if tb.topic not in TOPICS:
+            found.append(f"{where} unknown topic {tb.topic}")
+        for row in tb.rows:
+            if len(row) != len(tb.header):
+                found.append(f"{where} row has {len(row)} cells, header has {len(tb.header)}")
+        for text in (tb.title, *tb.header, *(c for r in tb.rows for c in r if isinstance(c, dict))):
+            if not (text.get("en") and text.get("th")):
+                found.append(f"{where} text missing English or Thai: {text}")
     return found
 
 

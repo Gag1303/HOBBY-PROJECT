@@ -4,55 +4,13 @@ Summarised in my own words from SEC documents read on 2026-10-04/05 (copies kept
 data/sec/ folder). The linked official documents are what counts.
 """
 
-from regulation.model import Entry, Source
+from regulation.model import Entry, Table
+from regulation.sources import (
+    CHECK_FIRST, IC_SUMMARY, LAPSED_GUIDE, PERSONNEL_RULE, QUALIFICATION_TABLES, RENEWAL_GUIDELINE,
+    RENEWAL_TABLE, SALES_CIRCULAR, SCOPE_TABLE,
+)
 
 CHECKED = "2026-10-05"
-
-# ---------- sources ----------
-
-PERSONNEL_RULE = Source(
-    "ทลธ. 8/2557",
-    {"en": "Rules on capital market personnel (consolidated version)",
-     "th": "หลักเกณฑ์เกี่ยวกับบุคลากรในธุรกิจตลาดทุน (ฉบับประมวล)"},
-    "https://publish.sec.or.th/nrs/6727p_r.pdf")
-QUALIFICATION_TABLES = Source(
-    "ทลธ. 22/2568",
-    {"en": "Qualification tables for capital market personnel (attachment)",
-     "th": "ตารางคุณสมบัติของบุคลากรในธุรกิจตลาดทุน (แนบท้ายประกาศ)"},
-    "https://publish.sec.or.th/nrs/10750p_r.pdf")
-RENEWAL_TABLE = Source(
-    "ทลธ. 22/2568",
-    {"en": "Qualification table for renewal (attachment)",
-     "th": "ตารางคุณสมบัติของผู้ขอความเห็นชอบในการต่ออายุ (แนบท้ายประกาศ)"},
-    "https://publish.sec.or.th/nrs/10751p_r.pdf")
-RENEWAL_GUIDELINE = Source(
-    "นป. 5/2568",
-    {"en": "Guideline on renewing IC, IP and analyst approval",
-     "th": "แนวทางปฏิบัติในการต่ออายุการให้ความเห็นชอบ IC IP และนักวิเคราะห์การลงทุน"},
-    "https://publish.sec.or.th/nrs/10782p_r.pdf")
-SCOPE_TABLE = Source(
-    "ทลธ. 70/2561",
-    {"en": "What each type of approval may do (attachment)",
-     "th": "ประเภทธุรกรรมที่ผู้ได้รับความเห็นชอบแต่ละประเภทสามารถทำได้ (แนบท้ายประกาศ)"},
-    "https://publish.sec.or.th/nrs/7889p_r.pdf")
-IC_SUMMARY = Source(
-    "SEC website",
-    {"en": "IC / IP rules summary page", "th": "หน้าสรุปหลักเกณฑ์ IC / IP"},
-    "https://www.sec.or.th/TH/Pages/LawandRegulations/InvestmentConsultantSummary.aspx")
-LAPSED_GUIDE = Source(
-    "SEC guide",
-    {"en": "How to re-apply when an IC/IP approval expired within 5 years",
-     "th": "วิธีขอความเห็นชอบสำหรับ IC/IP ที่ใบอนุญาตขาดอายุไม่เกิน 5 ปี"},
-    "https://www.sec.or.th/TH/Documents/InvestmentConsultant/5year.pdf")
-SALES_CIRCULAR = Source(
-    "นจ.(ว) 17/2560",
-    {"en": "Circular on the sales process and types of sellers",
-     "th": "หนังสือเวียนเรื่องกระบวนการขายผลิตภัณฑ์ในตลาดทุนและประเภทคนขาย"},
-    "https://publish.sec.or.th/nrs/7407s.pdf")
-CHECK_FIRST = Source(
-    "SEC Check First",
-    {"en": "Search licensed people and firms", "th": "ค้นหาบุคคลและผู้ประกอบธุรกิจที่ได้รับอนุญาต"},
-    "https://market.sec.or.th/LicenseCheck/Search")
 
 # ---------- tables shown on the page ----------
 
@@ -92,6 +50,17 @@ IP_ROUTES = [
      {"en": "Pass the rules & suitable advice paper", "th": "สอบผ่านกฎระเบียบฯ"}),
     ({"en": "None of the above", "th": "ไม่มีคุณสมบัติข้างต้น"},
      {"en": "Pass P1 + P2 + P3 and CFP modules 1 and 2", "th": "สอบผ่าน P1 + P2 + P3 และ CFP ชุดวิชาที่ 1 และ 2"}),
+]
+
+TABLES = [
+    Table("A", "📋", {"en": "What each licence may advise on", "th": "ใบอนุญาตแต่ละแบบแนะนำอะไรได้บ้าง"},
+          ({"en": "Licence", "th": "ใบอนุญาต"}, *SCOPE_COLUMNS),
+          tuple((name, *allowed) for name, allowed in LICENCE_SCOPE),
+          SCOPE_TABLE),
+    Table("A", "🧭", {"en": "Routes to becoming an IP", "th": "เส้นทางสู่การเป็น IP"},
+          ({"en": "If you have", "th": "ถ้าคุณมี"}, {"en": "You still need", "th": "ยังต้องทำเพิ่ม"}),
+          tuple(IP_ROUTES),
+          QUALIFICATION_TABLES, {"en": "pages 16–20", "th": "หน้า 16–20"}),
 ]
 
 # ---------- entries ----------

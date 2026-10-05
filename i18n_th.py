@@ -513,6 +513,5 @@ TH = {
     "in force since {d}": "มีผลตั้งแต่ {d}",
     "Not checked for over 6 months – compare it with the source before relying on it.":
         "ไม่ได้ตรวจสอบเกิน 6 เดือน ควรเทียบกับเอกสารต้นทางก่อนนำไปใช้",
-    "Topics B–E (conduct with clients, penalties, fund structure, fund rules) are coming next.":
-        "หัวข้อ B–E (การปฏิบัติต่อลูกค้า บทลงโทษ โครงสร้างกองทุน กฎเกณฑ์กองทุน) จะเพิ่มต่อไป",
+    "Coming next: {topics}": "หัวข้อที่จะเพิ่มต่อไป: {topics}",
 }
