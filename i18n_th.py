@@ -476,4 +476,43 @@ TH = {
     "New password": "รหัสผ่านใหม่",
     "The current password is wrong.": "รหัสผ่านปัจจุบันไม่ถูกต้อง",
     "Password changed.": "เปลี่ยนรหัสผ่านแล้ว",
+    # ---------- law & regulation ----------
+    "Law & Regulation": "กฎหมายและกฎเกณฑ์",
+    "REFERENCE": "แหล่งอ้างอิง",
+    "Rules for this module": "กฎเกณฑ์ของชุดวิชานี้",
+    "Law & Regulation: SEC rules on licences, with sources":
+        "กฎหมายและกฎเกณฑ์: หลักเกณฑ์ ก.ล.ต. เรื่องใบอนุญาต พร้อมแหล่งที่มา",
+    "A personal study reference: rules summarised in my own words, each linked to the "
+    "official document. Not legal advice – the official document is what counts, and rules "
+    "change.":
+        "สรุปเพื่อการศึกษาส่วนตัว เรียบเรียงด้วยภาษาของตนเองพร้อมลิงก์ไปยังเอกสารทางการ "
+        "ไม่ใช่คำแนะนำทางกฎหมาย ให้ยึดเอกสารทางการเป็นสำคัญ และกฎเกณฑ์อาจเปลี่ยนแปลงได้",
+    "Search": "ค้นหา",
+    "e.g. renew, CFP, ESG, ต่ออายุ": "เช่น ต่ออายุ, CFP, ESG, renew",
+    "Topic": "หัวข้อ",
+    "CFP module": "ชุดวิชา CFP",
+    "All topics": "ทุกหัวข้อ",
+    "All modules": "ทุกชุดวิชา",
+    "All roles": "ทุกบทบาท",
+    "Rules shown": "กฎเกณฑ์ที่แสดง",
+    "Last checked": "ตรวจสอบล่าสุด",
+    "Need re-checking": "ควรตรวจสอบใหม่",
+    "Rules not checked against their source for 6 months.":
+        "กฎเกณฑ์ที่ไม่ได้ตรวจกับเอกสารต้นทางเกิน 6 เดือน",
+    "Showing rules for Module {n} · {name}": "แสดงกฎเกณฑ์ของชุดวิชาที่ {n} · {name}",
+    "What each licence may advise on": "ใบอนุญาตแต่ละแบบแนะนำอะไรได้บ้าง",
+    "Routes to becoming an IP": "เส้นทางสู่การเป็น IP",
+    "Licence": "ใบอนุญาต",
+    "Source: {src}": "ที่มา: {src}",
+    "If you have": "ถ้าคุณมี",
+    "You still need": "ยังต้องทำเพิ่ม",
+    "pages 16–20": "หน้า 16–20",
+    "No rule matches these filters.": "ไม่พบกฎเกณฑ์ตามตัวกรองนี้",
+    "This topic is coming later.": "หัวข้อนี้จะเพิ่มภายหลัง",
+    "checked {d}": "ตรวจสอบ {d}",
+    "in force since {d}": "มีผลตั้งแต่ {d}",
+    "Not checked for over 6 months – compare it with the source before relying on it.":
+        "ไม่ได้ตรวจสอบเกิน 6 เดือน ควรเทียบกับเอกสารต้นทางก่อนนำไปใช้",
+    "Topics B–E (conduct with clients, penalties, fund structure, fund rules) are coming next.":
+        "หัวข้อ B–E (การปฏิบัติต่อลูกค้า บทลงโทษ โครงสร้างกองทุน กฎเกณฑ์กองทุน) จะเพิ่มต่อไป",
 }

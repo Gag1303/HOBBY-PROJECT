@@ -11,20 +11,23 @@ st.write(t("Personal practice tools, organised by the 6 modules of the Thai CFP�
            "Each module gets its own tools as I learn it."))
 
 user = auth.current_user()
-if auth.can(user, "tools") or auth.can(user, "career"):
+if any(auth.can(user, a) for a in ("tools", "reference", "career")):
     with st.container(border=True):
         st.markdown(t("**Tools** · for every module"))
         if auth.can(user, "tools"):
             st.page_link("interface/calculators/financial_calculator.py",
                          label=t("Financial calculator: TVM, NPV / IRR, interest rate conversion"),
                          icon="🧮")
+        if auth.can(user, "reference"):
+            st.page_link("interface/regulation/bible.py",
+                         label=t("Law & Regulation: SEC rules on licences, with sources"), icon="⚖️")
         if auth.can(user, "career"):
             st.page_link("interface/career/guide.py",
                          label=t("CFP career guide: path to CFP, ethics, renewal, working abroad, "
                                  "TFPA documents"), icon="🎓")
 
 visible = [m for m in MODULES if auth.can(user, f"m{m.number}")]
-if not visible and not (auth.can(user, "tools") or auth.can(user, "career")):
+if not visible and not any(auth.can(user, a) for a in ("tools", "reference", "career")):
     st.info(t("Your account cannot see any area yet. Ask the superadmin to give you access."))
 
 for i, m in enumerate(visible):

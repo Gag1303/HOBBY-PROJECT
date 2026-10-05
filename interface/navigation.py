@@ -14,6 +14,7 @@ import streamlit as st
 import auth
 from cfp_modules import MODULES
 from i18n import lang, language_switcher, t
+from regulation.library import modules_with_entries
 
 
 def run() -> None:
@@ -36,6 +37,12 @@ def run() -> None:
                 icon="🧮", url_path="calculator"),
     ]
 
+    # Reference material used across modules (the Law & Regulation "Bible").
+    reference_pages = [
+        st.Page("interface/regulation/bible.py", title=t("Law & Regulation"), icon="⚖️", url_path="law"),
+    ]
+    law = reference_pages[0]
+
     # Guides for the CFP career itself (not one module).
     career_pages = [
         st.Page("interface/career/guide.py", title=t("CFP career guide"), icon="🎓", url_path="career"),
@@ -53,12 +60,13 @@ def run() -> None:
 
     # Only the pages this account may see exist for it; the others cannot be opened at all.
     tools = tool_pages if auth.can(user, "tools") else []
+    reference = reference_pages if auth.can(user, "reference") else []
     career = career_pages if auth.can(user, "career") else []
     modules = {m.number: module_pages.get(m.number, []) for m in MODULES if auth.can(user, f"m{m.number}")}
     admin_pages = [admin] if auth.LOGIN_ENABLED and auth.is_superadmin(user) else []
     account_pages = [my_account] if auth.LOGIN_ENABLED else []
 
-    all_pages = [home] + account_pages + admin_pages + tools + career + [p for ps in modules.values() for p in ps]
+    all_pages = [home] + account_pages + admin_pages + tools + reference + career + [p for ps in modules.values() for p in ps]
     current = st.navigation(all_pages, position="hidden")  # we draw our own menu below
 
     # Sidebar menu: account, language switch, Home, Tools, Career, then one section per module that
@@ -81,6 +89,10 @@ def run() -> None:
             st.caption(t("TOOLS"))
             for p in tools:
                 st.page_link(p, icon=p.icon)
+        if reference:
+            st.caption(t("REFERENCE"))
+            for p in reference:
+                st.page_link(p, icon=p.icon)
         if career:
             st.caption(t("CAREER"))
             for p in career:
@@ -91,12 +103,18 @@ def run() -> None:
             if m.number not in modules:
                 continue
             pages = modules[m.number]
-            is_current = any(p.url_path == current.url_path for p in pages)
+            has_rules = bool(reference) and m.number in modules_with_entries()
+            is_current = any(p.url_path == current.url_path for p in pages) or (
+                current.url_path == law.url_path and st.session_state.get("law_module") == m.number)
             name = m.name_th if lang() == "th" else m.name_en
             with st.expander(t("Module {n}", n=m.number) + f" · {name}", expanded=is_current):
                 for p in pages:
                     st.page_link(p, icon=p.icon)
-                if not pages:
+                if has_rules and st.button("⚖️ " + t("Rules for this module"), key=f"rules_m{m.number}",
+                                           use_container_width=True):
+                    st.session_state["law_module"] = m.number  # the Law page opens with this filter
+                    st.switch_page(law)
+                if not pages and not has_rules:
                     st.caption(t("Coming later"))
         st.divider()
 

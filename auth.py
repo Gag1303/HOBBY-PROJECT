@@ -5,7 +5,7 @@ to GitHub. Passwords are never stored: only a salted PBKDF2 hash of each one.
 
 Roles:
   superadmin  sees every page and manages accounts on the Admin page
-  user        sees only the areas a superadmin gave them (Tools, Career, Module 1-6)
+  user        sees only the areas a superadmin gave them (Tools, Reference, Career, Module 1-6)
 
 Pages a person may not see are not given to st.navigation at all, so they cannot be opened by
 typing their URL either.
@@ -34,7 +34,7 @@ LOGIN_ENABLED = False
 LOCAL_USER = {"username": "local", "name": "local", "role": "superadmin", "areas": [], "disabled": False}
 
 ROLES = ["superadmin", "user"]
-AREAS = ["tools", "career"] + [f"m{m.number}" for m in MODULES]
+AREAS = ["tools", "reference", "career"] + [f"m{m.number}" for m in MODULES]
 
 ITERATIONS = 200_000      # PBKDF2 rounds: slow on purpose, so guessing passwords is slow too
 MIN_PASSWORD = 8
@@ -104,6 +104,8 @@ def area_label(area: str) -> str:
         return t("Tools (financial calculator)")
     if area == "career":
         return t("CFP career guide")
+    if area == "reference":
+        return t("Law & Regulation")
     m = MODULES[int(area[1:]) - 1]
     return t("Module {n}", n=m.number) + " · " + (m.name_th if lang() == "th" else m.name_en)
 
