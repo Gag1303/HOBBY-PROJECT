@@ -73,3 +73,36 @@ IC_PENALTY_2556 = Source(
     {"en": "Circular raising penalties for investment consultants",
      "th": "หนังสือเวียนเรื่องปรับปรุงหลักเกณฑ์การพิจารณาลงโทษผู้แนะนำการลงทุน"},
     "https://www.sec.or.th/TH/Documents/InvestmentConsultant/Rulesor.pdf")
+
+# ---------- SEC: mutual funds ----------
+
+SEC_ACT_FUNDS = Source(
+    "พ.ร.บ.หลักทรัพย์ฯ ม. 117–132",
+    {"en": "Securities and Exchange Act, part 7 (managing mutual funds) – SEC's plain summary",
+     "th": "คำอธิบายสรุป พ.ร.บ.หลักทรัพย์และตลาดหลักทรัพย์ ส่วนที่ 7 การจัดการกองทุนรวม"},
+    "https://www.sec.or.th/TH/Documents/LawsandRegulations/MutualFund-SECAct-section07.pdf")
+FUND_TYPES = Source(
+    "ทน. 87/2558 ภาคผนวก 2",
+    {"en": "How funds are classified (appendix 2, as amended by ทน. 1/2569)",
+     "th": "การจัดแบ่งประเภทของกองทุน (ภาคผนวก 2 แก้ไขโดย ทน. 1/2569)"},
+    "https://publish.sec.or.th/nrs/11097p_r.pdf")
+FEE_CIRCULAR = Source(
+    "นจ.(ว) 2/2569",
+    {"en": "Circular on the new rules for fund fees (management, performance and trailer fees)",
+     "th": "หนังสือเวียนเรื่องการปรับปรุงหลักเกณฑ์การคำนวณและเปิดเผยค่าธรรมเนียมกองทุนรวม"},
+    "https://publish.sec.or.th/nrs/11092p_r.pdf")
+NAV_ERRORS = Source(
+    "สน. 9/2564 ภาคผนวก 2",
+    {"en": "What the fund company must do when a NAV or unit price is wrong (appendix 2)",
+     "th": "การดำเนินการกรณีมูลค่าหน่วยลงทุนหรือราคาหน่วยลงทุนไม่ถูกต้อง (ภาคผนวก 2)"},
+    "https://publish.sec.or.th/nrs/11045p_r.pdf")
+THAI_ESG_CIRCULAR = Source(
+    "นจ.(ว) 3/2569",
+    {"en": "Circular adding JUMP+ shares to what Thai ESG funds may buy",
+     "th": "หนังสือเวียนเรื่องการปรับปรุงหลักเกณฑ์กองทุนรวมไทยเพื่อความยั่งยืน (เพิ่มหุ้น JUMP+)"},
+    "https://publish.sec.or.th/nrs/11095p_r.pdf")
+THAI_ESGX_CIRCULAR = Source(
+    "นจ.(ว) 4/2568",
+    {"en": "Circular on setting up and managing Thai ESG Extra (Thai ESGX) funds",
+     "th": "หนังสือเวียนเรื่องหลักเกณฑ์การจัดตั้ง การจัดการ และการลงทุนของกองทุนรวมไทยเพื่อความยั่งยืนแบบพิเศษ"},
+    "https://publish.sec.or.th/nrs/10719p_r.pdf")

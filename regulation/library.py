@@ -6,12 +6,12 @@ valid dates.
 
 from datetime import date
 
-from regulation import topic_a, topic_b, topic_c
+from regulation import topic_a, topic_b, topic_c, topic_d, topic_e
 from regulation.model import ROLES, TOPICS, Entry, Table
 
-# Topics D-E are added here as they are written.
-ENTRIES: list[Entry] = topic_a.ENTRIES + topic_b.ENTRIES + topic_c.ENTRIES
-TABLES: list[Table] = topic_a.TABLES + topic_c.TABLES
+_TOPICS = (topic_a, topic_b, topic_c, topic_d, topic_e)
+ENTRIES: list[Entry] = [e for t in _TOPICS for e in t.ENTRIES]
+TABLES: list[Table] = [tb for t in _TOPICS for tb in getattr(t, "TABLES", [])]
 
 
 def topics_with_entries() -> list[str]:

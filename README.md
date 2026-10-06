@@ -42,8 +42,9 @@ Sidebar → **REFERENCE → Law & Regulation**: SEC rules summarised in my own w
 Thai), each with its official source link, the date it took effect and the date I last checked it.
 Search and filter by topic, CFP module and role; each CFP module in the sidebar has a
 **Rules for this module** button that opens the page already filtered. Entries not checked for
-6 months are flagged. Done: A (licences & career path), B (conduct with clients) and C (penalties);
-D (fund structure) and E (fund rules) come next. The SEC PDFs I read are kept only in
+6 months are flagged. All 5 SEC topics are in: A (licences & career path),
+B (conduct with clients), C (penalties), D (fund structure) and E (fund rules: fees, NAV errors,
+Thai ESG). The SEC PDFs I read are kept only in
 `data/sec/` (not uploaded). Run `python -m regulation.library` to check every entry has its texts,
 sources and dates. This is a study reference, not legal advice.
 
