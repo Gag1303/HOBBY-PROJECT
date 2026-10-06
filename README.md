@@ -48,6 +48,12 @@ Thai ESG). The SEC PDFs I read are kept only in
 `data/sec/` (not uploaded). Run `python -m regulation.library` to check every entry has its texts,
 sources and dates. This is a study reference, not legal advice.
 
+**SEC update watcher.** Once a day (the first time you open Home or Law & Regulation) the app reads the
+SEC's list of documents issued this year and shows new ones that may change a rule: a 🔔 box on the Law
+page, a flag on each rule involved, and a banner on Home. It only flags – read the new document, update
+the rule, then press **Mark all as reviewed**. **Check now** checks on demand. What it has seen is kept in
+`data/sec_watch.json` (not uploaded). `python -m regulation.watcher` runs the same check in the terminal.
+
 ### Accounts and access
 **Switched off for now:** the app opens without a login. To switch it on, set
 `LOGIN_ENABLED = True` in `auth.py` and restart the app. Then everyone has to log in. The first time you open the app it asks you to create the
@@ -81,6 +87,7 @@ The project is split in two:
 - `app.py` – starts the app (a short launcher that calls `interface/navigation.py`)
 - `auth.py` – log in checks, roles and access areas
 - `career/content.py` – the CFP career guide text (summary of the TFPA documents)
+- `regulation/watcher.py` – reads the SEC's yearly list of new documents and flags rules they may change
 - `regulation/` – the Law & Regulation entries (`topic_a.py`, `topic_b.py`, …), their sources (`sources.py`),
   the entry model (`model.py`) and
   search / self-check (`library.py`)

@@ -5,12 +5,15 @@ import streamlit as st
 import auth
 from cfp_modules import MODULES
 from i18n import lang, t
+from interface.regulation import sec_updates
 
 st.title("🧭 " + t("CFP Toolkit"))
 st.write(t("Personal practice tools, organised by the 6 modules of the Thai CFP® program. "
            "Each module gets its own tools as I learn it."))
 
 user = auth.current_user()
+if auth.can(user, "reference"):
+    sec_updates.home_banner(sec_updates.auto_check())
 if any(auth.can(user, a) for a in ("tools", "reference", "career")):
     with st.container(border=True):
         st.markdown(t("**Tools** · for every module"))
@@ -20,7 +23,7 @@ if any(auth.can(user, a) for a in ("tools", "reference", "career")):
                          icon="🧮")
         if auth.can(user, "reference"):
             st.page_link("interface/regulation/bible.py",
-                         label=t("Law & Regulation: SEC rules on licences, with sources"), icon="⚖️")
+                         label=t("Law & Regulation: SEC rules on licences, conduct, penalties and funds, with sources"), icon="⚖️")
         if auth.can(user, "career"):
             st.page_link("interface/career/guide.py",
                          label=t("CFP career guide: path to CFP, ethics, renewal, working abroad, "

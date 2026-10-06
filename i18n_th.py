@@ -480,8 +480,8 @@ TH = {
     "Law & Regulation": "กฎหมายและกฎเกณฑ์",
     "REFERENCE": "แหล่งอ้างอิง",
     "Rules for this module": "กฎเกณฑ์ของชุดวิชานี้",
-    "Law & Regulation: SEC rules on licences, with sources":
-        "กฎหมายและกฎเกณฑ์: หลักเกณฑ์ ก.ล.ต. เรื่องใบอนุญาต พร้อมแหล่งที่มา",
+    "Law & Regulation: SEC rules on licences, conduct, penalties and funds, with sources":
+        "กฎหมายและกฎเกณฑ์: หลักเกณฑ์ ก.ล.ต. เรื่องใบอนุญาต การปฏิบัติต่อลูกค้า บทลงโทษ และกองทุนรวม พร้อมแหล่งที่มา",
     "A personal study reference: rules summarised in my own words, each linked to the "
     "official document. Not legal advice – the official document is what counts, and rules "
     "change.":
@@ -497,8 +497,8 @@ TH = {
     "Rules shown": "กฎเกณฑ์ที่แสดง",
     "Last checked": "ตรวจสอบล่าสุด",
     "Need re-checking": "ควรตรวจสอบใหม่",
-    "Rules not checked against their source for 6 months.":
-        "กฎเกณฑ์ที่ไม่ได้ตรวจกับเอกสารต้นทางเกิน 6 เดือน",
+    "Rules not checked against their source for 6 months, or that a newer SEC document may change.":
+        "กฎเกณฑ์ที่ไม่ได้ตรวจกับเอกสารต้นทางเกิน 6 เดือน หรือที่อาจถูกเปลี่ยนโดยเอกสาร ก.ล.ต. ฉบับใหม่",
     "Showing rules for Module {n} · {name}": "แสดงกฎเกณฑ์ของชุดวิชาที่ {n} · {name}",
     "What each licence may advise on": "ใบอนุญาตแต่ละแบบแนะนำอะไรได้บ้าง",
     "Routes to becoming an IP": "เส้นทางสู่การเป็น IP",
@@ -514,4 +514,30 @@ TH = {
     "Not checked for over 6 months – compare it with the source before relying on it.":
         "ไม่ได้ตรวจสอบเกิน 6 เดือน ควรเทียบกับเอกสารต้นทางก่อนนำไปใช้",
     "Coming next: {topics}": "หัวข้อที่จะเพิ่มต่อไป: {topics}",
+    # SEC update watcher
+    "Checking the SEC for new rules…": "กำลังตรวจหากฎเกณฑ์ใหม่จาก ก.ล.ต.…",
+    "never": "ยังไม่เคย",
+    "cancelled": "ยกเลิกแล้ว",
+    "May change: {ids}": "อาจกระทบ: {ids}",
+    "SEC updates": "อัปเดตจาก ก.ล.ต.",
+    "{n} new": "ใหม่ {n} รายการ",
+    "Last checked {when} · source: [SEC rules issued this year]({url}) · checks by itself once a day":
+        "ตรวจล่าสุด {when} · ที่มา: [กฎหมายและประกาศที่ออกรายปีของ ก.ล.ต.]({url}) · ตรวจเองวันละครั้ง",
+    "Check now": "ตรวจตอนนี้",
+    "Couldn't read the SEC website this time – try again later. ({error})":
+        "อ่านเว็บไซต์ ก.ล.ต. ไม่ได้ในครั้งนี้ ลองใหม่ภายหลัง ({error})",
+    "New SEC documents that may change rules here. Read them, update the rules if needed, then mark "
+    "them as reviewed.":
+        "เอกสาร ก.ล.ต. ฉบับใหม่ที่อาจเปลี่ยนกฎเกณฑ์ในหน้านี้ อ่านแล้วปรับปรุงกฎเกณฑ์หากจำเป็น จากนั้นกดว่าตรวจแล้ว",
+    "Mark all as reviewed": "ทำเครื่องหมายว่าตรวจแล้วทั้งหมด",
+    "Nothing new: no SEC document since the rules were checked seems to change them.":
+        "ไม่มีอะไรใหม่: ไม่พบเอกสาร ก.ล.ต. หลังวันที่ตรวจสอบที่น่าจะเปลี่ยนกฎเกณฑ์เหล่านี้",
+    "All {n} related SEC documents this year": "เอกสาร ก.ล.ต. ที่เกี่ยวข้องในปีนี้ทั้งหมด {n} ฉบับ",
+    "Already reviewed or older than the rules' check dates.":
+        "ตรวจแล้ว หรือออกก่อนวันที่ตรวจสอบกฎเกณฑ์",
+    "{n} new SEC documents may change your Law & Regulation rules.":
+        "มีเอกสาร ก.ล.ต. ใหม่ {n} ฉบับที่อาจเปลี่ยนกฎเกณฑ์ในหน้ากฎหมายและกฎเกณฑ์",
+    "See the SEC updates": "ดูอัปเดตจาก ก.ล.ต.",
+    "A newer SEC document may change this rule: {doc} – re-check it.":
+        "มีเอกสาร ก.ล.ต. ฉบับใหม่ที่อาจเปลี่ยนกฎเกณฑ์นี้: {doc} ควรตรวจสอบใหม่",
 }

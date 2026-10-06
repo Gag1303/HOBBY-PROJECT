@@ -10,8 +10,10 @@ import streamlit as st
 
 from cfp_modules import MODULES
 from i18n import lang, t
+from interface.regulation import sec_updates
 from regulation.library import ENTRIES, TABLES, find, modules_with_entries
 from regulation.model import ROLES, TOPICS
+from regulation.watcher import flags
 
 TH = lang() == "th"
 
@@ -54,11 +56,15 @@ role = c4.selectbox(t("Role"), list(role_labels), format_func=role_labels.get, k
 results = find(query, None if topic == ALL else topic, None if module == ALL else module,
                None if role == ALL else role)
 
-stale = [e for e in ENTRIES if e.is_stale()]
+watch = sec_updates.auto_check()
+flagged = flags(watch)
+stale = [e for e in ENTRIES if e.is_stale() or e.id in flagged]
 m1, m2, m3 = st.columns(3)
 m1.metric(t("Rules shown"), f"{len(results)} / {len(ENTRIES)}")
 m2.metric(t("Last checked"), nice_date(max(e.checked for e in ENTRIES)))
-m3.metric(t("Need re-checking"), len(stale), help=t("Rules not checked against their source for 6 months."))
+m3.metric(t("Need re-checking"), len(stale),
+          help=t("Rules not checked against their source for 6 months, or that a newer SEC document may change."))
+sec_updates.panel(watch)
 
 if module != ALL:
     m = MODULES[module - 1]
@@ -104,6 +110,9 @@ for key, name in TOPICS.items():
             st.caption(f"📄 {links}  \n🗓️ {when}  \n🏷️ {tags}")
             if e.is_stale():
                 st.warning(t("Not checked for over 6 months – compare it with the source before relying on it."))
+            for n in flagged.get(e.id, []):
+                st.warning("🔔 " + t("A newer SEC document may change this rule: {doc} – re-check it.",
+                                     doc=f"[{n.number}]({n.url})" if n.url else n.number))
 
 coming = [f"{k} · {pick(v)}" for k, v in TOPICS.items() if not any(e.topic == k for e in ENTRIES)]
 if coming:

@@ -40,6 +40,7 @@ class Source:
     title: Text
     url: str
     regulator: str = "SEC"
+    watch: tuple[str, ...] = ()  # words in the title of a newer SEC document that would change this one
 
 
 @dataclass(frozen=True)
