@@ -37,11 +37,12 @@ def run() -> None:
                 icon="🧮", url_path="calculator"),
     ]
 
-    # Reference material used across modules (the Law & Regulation "Bible").
+    # Reference material used across modules: the Law & Regulation "Bible" and the reading list.
     reference_pages = [
         st.Page("interface/regulation/bible.py", title=t("Law & Regulation"), icon="⚖️", url_path="law"),
+        st.Page("interface/reading/reading_list.py", title=t("CFP reading list"), icon="📚", url_path="reading"),
     ]
-    law = reference_pages[0]
+    law, reading = reference_pages
 
     # Guides for the CFP career itself (not one module).
     career_pages = [
@@ -105,7 +106,8 @@ def run() -> None:
             pages = modules[m.number]
             has_rules = bool(reference) and m.number in modules_with_entries()
             is_current = any(p.url_path == current.url_path for p in pages) or (
-                current.url_path == law.url_path and st.session_state.get("law_module") == m.number)
+                current.url_path == law.url_path and st.session_state.get("law_module") == m.number) or (
+                current.url_path == reading.url_path and st.session_state.get("reading_module") == m.number)
             name = m.name_th if lang() == "th" else m.name_en
             with st.expander(t("Module {n}", n=m.number) + f" · {name}", expanded=is_current):
                 for p in pages:
@@ -114,7 +116,11 @@ def run() -> None:
                                            use_container_width=True):
                     st.session_state["law_module"] = m.number  # the Law page opens with this filter
                     st.switch_page(law)
-                if not pages and not has_rules:
+                if reference and st.button("📚 " + t("Books for this module"), key=f"books_m{m.number}",
+                                           use_container_width=True):
+                    st.session_state["reading_module"] = m.number  # the reading list opens with this filter
+                    st.switch_page(reading)
+                if not pages and not reference:
                     st.caption(t("Coming later"))
         st.divider()
 

@@ -54,6 +54,14 @@ page, a flag on each rule involved, and a banner on Home. It only flags – read
 the rule, then press **Mark all as reviewed**. **Check now** checks on demand. What it has seen is kept in
 `data/sec_watch.json` (not uploaded). `python -m regulation.watcher` runs the same check in the terminal.
 
+### CFP reading list (Maruey Library)
+Sidebar → **REFERENCE → CFP reading list**, or **Books for this module** in each module: 45 books to borrow
+from the SET's [Maruey Library](https://www.maruey.com), including the official Thai CFP course text for every
+module (⭐). Only catalog details and a one-line note in my own words are stored – borrow the book to read it.
+Mark each book *To read / Reading / Done*, write notes in your own words (short quotes only, max 300
+characters) with practice questions, then drill them in the **Practice** tab. Notes are saved per account in
+`book_notes.json` (not uploaded). `python -m reading.books` checks the list.
+
 ### Accounts and access
 **Switched off for now:** the app opens without a login. To switch it on, set
 `LOGIN_ENABLED = True` in `auth.py` and restart the app. Then everyone has to log in. The first time you open the app it asks you to create the
@@ -87,6 +95,8 @@ The project is split in two:
 - `app.py` – starts the app (a short launcher that calls `interface/navigation.py`)
 - `auth.py` – log in checks, roles and access areas
 - `career/content.py` – the CFP career guide text (summary of the TFPA documents)
+- `reading/` – the Maruey reading list (`books.py`) and my notes and practice questions (`notes.py`)
+- `interface/reading/reading_list.py` – the reading list page
 - `regulation/watcher.py` – reads the SEC's yearly list of new documents and flags rules they may change
 - `regulation/` – the Law & Regulation entries (`topic_a.py`, `topic_b.py`, …), their sources (`sources.py`),
   the entry model (`model.py`) and

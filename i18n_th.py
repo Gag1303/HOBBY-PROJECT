@@ -540,4 +540,64 @@ TH = {
     "See the SEC updates": "ดูอัปเดตจาก ก.ล.ต.",
     "A newer SEC document may change this rule: {doc} – re-check it.":
         "มีเอกสาร ก.ล.ต. ฉบับใหม่ที่อาจเปลี่ยนกฎเกณฑ์นี้: {doc} ควรตรวจสอบใหม่",
+    # CFP reading list (Maruey Library)
+    "CFP reading list": "รายการหนังสืออ่านเพื่อ CFP",
+    "CFP reading list: Maruey Library books for each module, my notes and practice":
+        "รายการหนังสืออ่านเพื่อ CFP: หนังสือจากห้องสมุดมารวยแยกตามชุดวิชา พร้อมโน้ตและแบบฝึกหัดของฉัน",
+    "Books for this module": "หนังสือของชุดวิชานี้",
+    "Books to borrow from the [Maruey Library]({url}) (SET), chosen for each CFP module, with my own notes and "
+    "practice questions. Only the catalog details are here – borrow the book to read it. Catalog checked {date}.":
+        "หนังสือที่ยืมได้จาก[ห้องสมุดมารวย]({url}) (ตลาดหลักทรัพย์ฯ) คัดตามชุดวิชา CFP พร้อมโน้ตและคำถามฝึกของฉัน "
+        "ในแอปมีเพียงข้อมูลบรรณานุกรม ต้องยืมหนังสือเพื่ออ่าน ตรวจสอบรายการเมื่อ {date}",
+    "Books read": "อ่านจบแล้ว",
+    "My notes": "โน้ตของฉัน",
+    "Practice questions": "คำถามฝึก",
+    "To read": "จะอ่าน",
+    "Reading": "กำลังอ่าน",
+    "Done": "อ่านจบ",
+    "Borrow the book": "ยืมหนังสือ",
+    "Borrow the eBook": "ยืม eBook",
+    "Reading list": "รายการหนังสือ",
+    "Practice": "ฝึกทำ",
+    "How to borrow from Maruey": "วิธียืมหนังสือจากห้องสมุดมารวย",
+    "- **Free Trial Member** (sign up as a SET Member): borrow some eBook categories, 5 at a time, for 3 days.\n"
+    "- **eBook Member** (200 baht/year): all eBooks, 5 at a time, for 3 days.\n"
+    "- **Member** (250 baht/year + 500 baht deposit): printed books too, 7 days, at the SET building.\n"
+    "- Don't let others use your membership. Fees and rules as in Maruey's terms – check them on the site.":
+        "- **Trial Member ฟรี** (สมัครเป็น SET Member): ยืม eBook บางหมวด ครั้งละไม่เกิน 5 รายการ 3 วัน\n"
+        "- **eBook Member** (200 บาท/ปี): ยืม eBook ทุกหมวด ครั้งละไม่เกิน 5 รายการ 3 วัน\n"
+        "- **Member** (250 บาท/ปี + เงินประกัน 500 บาท): ยืมหนังสือเล่มได้ด้วย 7 วัน ที่อาคารตลาดหลักทรัพย์ฯ\n"
+        "- ห้ามให้ผู้อื่นใช้สิทธิสมาชิกของตน ค่าธรรมเนียมและเงื่อนไขตามข้อกำหนดของห้องสมุดมารวย ควรตรวจสอบบนเว็บไซต์",
+    "Official CFP course text": "ตำราหลักสูตร CFP",
+    "{n} pages": "{n} หน้า",
+    "call no. {c}": "เลขเรียก {c}",
+    "{n} notes": "โน้ต {n} รายการ",
+    "Question": "คำถาม",
+    "Answer": "คำตอบ",
+    "Q": "ถาม",
+    "A": "ตอบ",
+    "Page or chapter": "หน้าหรือบท",
+    "e.g. p. 45 or chapter 3": "เช่น หน้า 45 หรือ บทที่ 3",
+    "Summary in my own words": "สรุปด้วยคำพูดของตนเอง",
+    "Short quote (optional, up to {n} characters)": "ข้อความอ้างอิงสั้น ๆ (ไม่บังคับ ไม่เกิน {n} ตัวอักษร)",
+    "Practice questions from this part (optional) – add rows with the + below the table.":
+        "คำถามฝึกจากส่วนนี้ (ไม่บังคับ) เพิ่มแถวได้ด้วยปุ่ม + ใต้ตาราง",
+    "Save note": "บันทึกโน้ต",
+    "Note saved.": "บันทึกโน้ตแล้ว",
+    "Edit": "แก้ไข",
+    "Delete note": "ลบโน้ต",
+    "Add a note": "เพิ่มโน้ต",
+    "Book": "หนังสือ",
+    "Read the book, then write what you learned in your own words. Short quotes only – it keeps the notes yours "
+    "and helps you remember. Notes are saved on this computer only.":
+        "อ่านหนังสือแล้วเขียนสิ่งที่ได้เรียนรู้ด้วยคำพูดของตนเอง ใช้ข้อความอ้างอิงสั้น ๆ เท่านั้น เพื่อให้โน้ตเป็นของเรา"
+        "และช่วยให้จำได้ดีขึ้น โน้ตบันทึกไว้ในเครื่องนี้เท่านั้น",
+    "Write the summary in your own words.": "กรุณาเขียนสรุปด้วยคำพูดของตนเอง",
+    "The quote is too long – keep it short and put the rest in your own words.":
+        "ข้อความอ้างอิงยาวเกินไป ให้คัดมาสั้น ๆ แล้วเขียนส่วนที่เหลือด้วยคำพูดของตนเอง",
+    "No practice questions yet. Add some to your notes in the “My notes” tab.":
+        "ยังไม่มีคำถามฝึก เพิ่มได้ในโน้ตที่แท็บ “โน้ตของฉัน”",
+    "Show answer": "ดูคำตอบ",
+    "Next question": "ข้อถัดไป",
+    "{n} questions in this deck.": "มีคำถาม {n} ข้อในชุดนี้",
 }

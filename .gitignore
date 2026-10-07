@@ -11,3 +11,6 @@ user_settings.json
 
 # Accounts and password hashes (never upload)
 users.json
+
+# My reading notes (personal study notes)
+book_notes.json
