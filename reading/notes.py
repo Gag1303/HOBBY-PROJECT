@@ -8,9 +8,10 @@ import json
 import random
 import uuid
 from datetime import datetime
-from pathlib import Path
 
-NOTES_FILE = Path(__file__).resolve().parent.parent / "book_notes.json"
+from edition import USER_DIR
+
+NOTES_FILE = USER_DIR / "book_notes.json"
 QUOTE_LIMIT = 300  # characters: a short quote, the rest goes in my own words
 STATUSES = ("to_read", "reading", "done")
 

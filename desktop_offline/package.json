@@ -1,0 +1,45 @@
+{
+  "name": "cfp-toolkit-offline",
+  "productName": "CFP Toolkit Offline",
+  "version": "1.0.0",
+  "description": "CFP Toolkit – Offline Edition (Streamlit inside a desktop window, no Python needed)",
+  "main": "./build/electron/main.js",
+  "scripts": {
+    "dump": "dump-stlite-desktop-artifacts",
+    "serve": "cross-env NODE_ENV=production electron .",
+    "app:dir": "electron-builder --dir",
+    "app:dist": "electron-builder",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "build": {
+    "appId": "local.cfp-toolkit.offline",
+    "productName": "CFP Toolkit Offline",
+    "files": ["build/**/*"],
+    "directories": {
+      "buildResources": "assets"
+    },
+    "win": {
+      "target": "dir",
+      "icon": "assets/icon.ico"
+    }
+  },
+  "devDependencies": {
+    "@stlite/desktop": "0.103.0",
+    "cross-env": "^10.1.0",
+    "electron": "44.7.0",
+    "electron-builder": "^26.15.3"
+  },
+  "stlite": {
+    "desktop": {
+      "files": ["app"],
+      "entrypoint": "app/app.py",
+      "dependencies": ["pandas", "plotly", "openpyxl", "requests"],
+      "embed": true,
+      "appMenu": false,
+      "nodeJsWorker": true,
+      "nodefsMountpoints": {
+        "/cfp": "{{documents}}/CFP Toolkit"
+      }
+    }
+  }
+}

@@ -600,4 +600,14 @@ TH = {
     "Show answer": "ดูคำตอบ",
     "Next question": "ข้อถัดไป",
     "{n} questions in this deck.": "มีคำถาม {n} ข้อในชุดนี้",
+    # Offline Edition
+    "Offline Edition – no live internet features": "รุ่นออฟไลน์ – ไม่มีฟีเจอร์ที่ต้องใช้อินเทอร์เน็ตแบบสด",
+    "Offline Edition: fund data from the weekly snapshot as of {day}. Full history is available for the {n} "
+    "largest funds.":
+        "รุ่นออฟไลน์: ข้อมูลกองทุนจากชุดข้อมูลรายสัปดาห์ ณ วันที่ {day} มีประวัติ NAV ย้อนหลังครบสำหรับกองทุนขนาดใหญ่ {n} กองทุน",
+    "No fund snapshot found. Run the weekly snapshot on the computer with the normal app.":
+        "ไม่พบชุดข้อมูลกองทุน ให้รันการอัปเดตข้อมูลรายสัปดาห์บนเครื่องที่ติดตั้งแอปปกติ",
+    "Links to websites don't open in the Offline Edition – open them from the normal app, or search the title on "
+    "the website.":
+        "ลิงก์ไปยังเว็บไซต์เปิดไม่ได้ในรุ่นออฟไลน์ ให้เปิดจากแอปปกติ หรือค้นหาชื่อเอกสาร/หนังสือบนเว็บไซต์นั้น",
 }

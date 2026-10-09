@@ -9,6 +9,7 @@ from datetime import date
 import streamlit as st
 
 from cfp_modules import MODULES
+from edition import OFFLINE
 from i18n import lang, t
 from interface.regulation import sec_updates
 from regulation.library import ENTRIES, TABLES, find, modules_with_entries
@@ -36,6 +37,9 @@ st.title("⚖️ " + t("Law & Regulation"))
 st.caption(t("A personal study reference: rules summarised in my own words, each linked to the official "
              "document. Not legal advice – the official document is what counts, and rules change."))
 
+if OFFLINE:
+    st.caption("🔗 " + t("Links to websites don't open in the Offline Edition – open them from the normal app, or search the title on the website."))
+
 # ---------- filters ----------
 
 ALL = "all"
@@ -56,15 +60,16 @@ role = c4.selectbox(t("Role"), list(role_labels), format_func=role_labels.get, k
 results = find(query, None if topic == ALL else topic, None if module == ALL else module,
                None if role == ALL else role)
 
-watch = sec_updates.auto_check()
-flagged = flags(watch)
+watch = {} if OFFLINE else sec_updates.auto_check()  # the Offline Edition can't reach the SEC
+flagged = {} if OFFLINE else flags(watch)
 stale = [e for e in ENTRIES if e.is_stale() or e.id in flagged]
 m1, m2, m3 = st.columns(3)
 m1.metric(t("Rules shown"), f"{len(results)} / {len(ENTRIES)}")
 m2.metric(t("Last checked"), nice_date(max(e.checked for e in ENTRIES)))
 m3.metric(t("Need re-checking"), len(stale),
           help=t("Rules not checked against their source for 6 months, or that a newer SEC document may change."))
-sec_updates.panel(watch)
+if not OFFLINE:
+    sec_updates.panel(watch)
 
 if module != ALL:
     m = MODULES[module - 1]

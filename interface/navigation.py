@@ -13,6 +13,7 @@ import streamlit as st
 
 import auth
 from cfp_modules import MODULES
+from edition import OFFLINE
 from i18n import lang, language_switcher, t
 from regulation.library import modules_with_entries
 
@@ -80,6 +81,8 @@ def run() -> None:
                 auth.logout()
                 st.rerun()
         language_switcher()
+        if OFFLINE:
+            st.caption("📦 " + t("Offline Edition – no live internet features"))
         st.page_link(home, icon=home.icon)
         for p in account_pages:
             st.page_link(p, icon=p.icon)

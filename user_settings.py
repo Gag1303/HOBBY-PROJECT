@@ -5,9 +5,10 @@ refresh and an app restart but is never uploaded to GitHub.
 """
 
 import json
-from pathlib import Path
 
-SETTINGS_FILE = Path(__file__).parent / "user_settings.json"
+from edition import USER_DIR
+
+SETTINGS_FILE = USER_DIR / "user_settings.json"
 
 
 def load_settings() -> dict:

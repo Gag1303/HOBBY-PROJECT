@@ -14,3 +14,10 @@ users.json
 
 # My reading notes (personal study notes)
 book_notes.json
+
+# Offline Edition build output (re-create with python desktop_offline/build.py)
+desktop_offline/node_modules/
+desktop_offline/build/
+desktop_offline/dist/
+desktop_offline/app/
+desktop_offline/package-lock.json

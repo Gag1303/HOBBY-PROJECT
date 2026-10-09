@@ -18,15 +18,15 @@ import re
 import secrets
 import time
 from datetime import datetime
-from pathlib import Path
 
 import streamlit as st
 
 from cfp_modules import MODULES
+from edition import USER_DIR
 from i18n import lang, t
 from user_settings import load_settings, save_setting
 
-USERS_FILE = Path(__file__).parent / "users.json"
+USERS_FILE = USER_DIR / "users.json"
 
 # Login on/off. While False the app opens straight in, everyone is treated as the superadmin
 # "local", and the login, account and admin pages are hidden. Set to True to require log in.

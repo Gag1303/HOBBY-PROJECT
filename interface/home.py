@@ -4,6 +4,7 @@ import streamlit as st
 
 import auth
 from cfp_modules import MODULES
+from edition import OFFLINE
 from i18n import lang, t
 from interface.regulation import sec_updates
 
@@ -12,7 +13,7 @@ st.write(t("Personal practice tools, organised by the 6 modules of the Thai CFPÂ
            "Each module gets its own tools as I learn it."))
 
 user = auth.current_user()
-if auth.can(user, "reference"):
+if auth.can(user, "reference") and not OFFLINE:  # the Offline Edition can't reach the SEC
     sec_updates.home_banner(sec_updates.auto_check())
 if any(auth.can(user, a) for a in ("tools", "reference", "career")):
     with st.container(border=True):

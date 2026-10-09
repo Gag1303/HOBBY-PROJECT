@@ -8,6 +8,7 @@ import streamlit as st
 
 import auth
 from cfp_modules import MODULES
+from edition import OFFLINE
 from i18n import lang, t
 from reading import notes
 from reading.books import BOOKS, BY_ID, CATALOG_CHECKED, MARUEY
@@ -36,6 +37,9 @@ st.title("📚 " + t("CFP reading list"))
 st.caption(t("Books to borrow from the [Maruey Library]({url}) (SET), chosen for each CFP module, with my own "
              "notes and practice questions. Only the catalog details are here – borrow the book to read it. "
              "Catalog checked {date}.", url=MARUEY, date=CATALOG_CHECKED))
+
+if OFFLINE:
+    st.caption("🔗 " + t("Links to websites don't open in the Offline Edition – open them from the normal app, or search the title on the website."))
 
 mine = notes.load(USER)
 ALL = "all"

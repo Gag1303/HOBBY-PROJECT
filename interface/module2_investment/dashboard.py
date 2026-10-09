@@ -10,10 +10,11 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+from edition import OFFLINE
 from i18n import lang, t
 from module2_investment.common import (
-    DATA_NOTE, DOWN_COLOR, SERIES_COLORS, UP_COLOR, csv_bytes, fund_label, last_date_or_stop,
-    load_full_history, load_market, signed,
+    DATA_NOTE, DOWN_COLOR, SERIES_COLORS, UP_COLOR, csv_bytes, fund_label, history_symbols, last_date_or_stop,
+    load_full_history, load_market, signed, snapshot_caption,
 )
 from module2_investment.tables import (
     calendar_year_returns, dividends, drawdown, fund_stats, period_returns,
@@ -38,13 +39,18 @@ def period_start(end: pd.Timestamp, months: int | None) -> pd.Timestamp | None:
 st.sidebar.subheader(t("Thai mutual funds"))
 last_date = last_date_or_stop()
 
-day = st.sidebar.date_input(t("NAV date"), value=last_date, max_value=last_date,
-                            help=t("Weekends/holidays have no data."))
+if OFFLINE:  # one snapshot date, nothing to refresh
+    day = last_date
+else:
+    day = st.sidebar.date_input(t("NAV date"), value=last_date, max_value=last_date,
+                                help=t("Weekends/holidays have no data."))
+    if st.sidebar.button("🔄 " + t("Refresh data")):
+        st.cache_data.clear()
+        st.rerun()
 name_col = "nameTh" if lang() == "th" else "nameEn"  # fund names follow the app language
-if st.sidebar.button("🔄 " + t("Refresh data")):
-    st.cache_data.clear()
-    st.rerun()
 st.sidebar.caption(t(DATA_NOTE))
+snapshot_caption()
+with_history = history_symbols()  # None = every fund (normal app)
 
 with st.spinner(t("Loading latest NAV of all funds as of {day} ...", day=day)):
     market = load_market(day)
@@ -154,6 +160,8 @@ with tab_market:
 
 with tab_detail:
     funds = market.sort_values("symbol")
+    if with_history is not None:
+        funds = funds[funds["symbol"].isin(with_history)]
     labels = dict(zip(funds["symbol"], funds["symbol"] + "  ·  " + funds[name_col].fillna("")))
     choices = list(labels)
     sym = st.selectbox(t("Fund (type to search)"), choices, format_func=labels.get,
@@ -259,7 +267,7 @@ with tab_detail:
 
 with tab_history:
     st.subheader(t("Compare funds"))
-    symbols = sorted(market["symbol"].unique())
+    symbols = sorted(s for s in market["symbol"].unique() if with_history is None or s in with_history)
     default = [s for s in ["K-USA-A(A)", "SCBSET"] if s in symbols]
 
     c1, c2 = st.columns([3, 2])

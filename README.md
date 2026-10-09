@@ -78,6 +78,12 @@ of the app completely, so typing their URL does not open them either.
 - Forgot the only superadmin password? Delete `users.json` and create the superadmin again
   (this removes all accounts).
 
+## Offline Edition (desktop program, no Python needed)
+A separate Windows program built from the same code: **CFP Toolkit Offline** on the Desktop. Everything works
+except the live internet features: the SEC watcher is hidden and the fund pages show a **weekly snapshot**
+(updated by Windows every Sunday 10:00). Notes and settings live in `Documents\CFP Toolkit`. Rebuild after code
+changes with `python desktop_offline/build.py`. Details: [desktop_offline/README.md](desktop_offline/README.md).
+
 ## Project layout
 The project is split in two:
 
@@ -95,6 +101,9 @@ The project is split in two:
 - `app.py` – starts the app (a short launcher that calls `interface/navigation.py`)
 - `auth.py` – log in checks, roles and access areas
 - `career/content.py` – the CFP career guide text (summary of the TFPA documents)
+- `edition.py` – normal app or Offline Edition, and where personal files and the fund snapshot live
+- `module2_investment/snapshot.py` – builds and reads the weekly fund snapshot
+- `desktop_offline/` – builds the Offline Edition program and runs the Sunday snapshot
 - `reading/` – the Maruey reading list (`books.py`) and my notes and practice questions (`notes.py`)
 - `interface/reading/reading_list.py` – the reading list page
 - `regulation/watcher.py` – reads the SEC's yearly list of new documents and flags rules they may change

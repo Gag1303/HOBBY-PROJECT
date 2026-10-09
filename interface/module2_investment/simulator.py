@@ -12,8 +12,8 @@ import streamlit as st
 
 from i18n import lang, t
 from module2_investment.common import (
-    DATA_NOTE, SERIES_COLORS, fund_label, last_date_or_stop, load_full_history, load_market,
-    signed, symbol_of,
+    DATA_NOTE, SERIES_COLORS, fund_label, history_symbols, last_date_or_stop, load_full_history, load_market,
+    signed, snapshot_caption, symbol_of,
 )
 from module2_investment.simulate import (
     FREQUENCIES, REBALANCING, STRATEGIES, align_prices, simulate, trade_dates,
@@ -38,9 +38,13 @@ st.caption(t("What would have happened if you had invested in a portfolio of fun
 st.sidebar.caption(t(DATA_NOTE))
 
 last_date = last_date_or_stop()
+snapshot_caption()
 with st.spinner(t("Loading fund list ...")):
     market = load_market(last_date)
 funds = market.sort_values("symbol")
+with_history = history_symbols()  # None = every fund (normal app)
+if with_history is not None:
+    funds = funds[funds["symbol"].isin(with_history)]
 name_col = "nameTh" if lang() == "th" else "nameEn"
 options = [fund_label(s, n) for s, n in zip(funds["symbol"], funds[name_col])]
 by_symbol = {symbol_of(o): o for o in options}
