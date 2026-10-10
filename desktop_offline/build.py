@@ -15,7 +15,7 @@ HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parent
 APP = HERE / "app"
 ROOT_FILES = ["app.py", "edition.py", "auth.py", "cfp_modules.py", "i18n.py", "i18n_th.py", "user_settings.py"]
-PACKAGES = ["interface", "regulation", "reading", "module2_investment", "career", "calculators"]
+PACKAGES = ["interface", "regulation", "knowledge", "reading", "module2_investment", "career", "calculators"]
 EXE = HERE / "dist" / "win-unpacked" / "CFP Toolkit Offline.exe"
 
 

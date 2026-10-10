@@ -54,6 +54,13 @@ page, a flag on each rule involved, and a banner on Home. It only flags – read
 the rule, then press **Mark all as reviewed**. **Check now** checks on demand. What it has seen is kept in
 `data/sec_watch.json` (not uploaded). `python -m regulation.watcher` runs the same check in the terminal.
 
+### Knowledge (study notes)
+Sidebar → **REFERENCE → Knowledge**, or **Knowledge for this module** in each module: study notes organised by the
+official course chapters and mapped to TFPA's learning objectives (LOS), with formulas, a worked example and
+practice questions (answers hidden until you open them). A coverage table shows which chapters and LOS are done.
+Done: Module 2 chapter 2 (Return and risk, 14 concepts, all 23 LOS). `python -m knowledge.library` checks the
+notes and prints the coverage.
+
 ### CFP reading list (Maruey Library)
 Sidebar → **REFERENCE → CFP reading list**, or **Books for this module** in each module: 45 books to borrow
 from the SET's [Maruey Library](https://www.maruey.com), including the official Thai CFP course text for every
@@ -104,6 +111,8 @@ The project is split in two:
 - `edition.py` – normal app or Offline Edition, and where personal files and the fund snapshot live
 - `module2_investment/snapshot.py` – builds and reads the weekly fund snapshot
 - `desktop_offline/` – builds the Offline Edition program and runs the Sunday snapshot
+- `knowledge/` – the Knowledge notes (`m2_ch02.py`, …), the course chapters (`module2.py`) and the self-check (`library.py`)
+- `interface/knowledge/library.py` – the Knowledge page
 - `reading/` – the Maruey reading list (`books.py`) and my notes and practice questions (`notes.py`)
 - `interface/reading/reading_list.py` – the reading list page
 - `regulation/watcher.py` – reads the SEC's yearly list of new documents and flags rules they may change

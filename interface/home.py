@@ -25,6 +25,9 @@ if any(auth.can(user, a) for a in ("tools", "reference", "career")):
         if auth.can(user, "reference"):
             st.page_link("interface/regulation/bible.py",
                          label=t("Law & Regulation: SEC rules on licences, conduct, penalties and funds, with sources"), icon="⚖️")
+            st.page_link("interface/knowledge/library.py",
+                         label=t("Knowledge: study notes by course chapter, with formulas, examples and practice"),
+                         icon="📘")
             st.page_link("interface/reading/reading_list.py",
                          label=t("CFP reading list: Maruey Library books for each module, my notes and practice"),
                          icon="📚")

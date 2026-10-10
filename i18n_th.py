@@ -610,4 +610,33 @@ TH = {
     "Links to websites don't open in the Offline Edition – open them from the normal app, or search the title on "
     "the website.":
         "ลิงก์ไปยังเว็บไซต์เปิดไม่ได้ในรุ่นออฟไลน์ ให้เปิดจากแอปปกติ หรือค้นหาชื่อเอกสาร/หนังสือบนเว็บไซต์นั้น",
+    # Knowledge library
+    "Knowledge": "คลังความรู้",
+    "Knowledge for this module": "ความรู้ของชุดวิชานี้",
+    "Knowledge: study notes by course chapter, with formulas, examples and practice":
+        "คลังความรู้: สรุปเนื้อหาตามบทของหลักสูตร พร้อมสูตร ตัวอย่าง และแบบฝึกหัด",
+    "Study notes for each CFP module, organised by the official course chapters and mapped to the learning "
+    "objectives (LOS). My own summary of standard finance theory – check details in the course text.":
+        "สรุปเนื้อหาของแต่ละชุดวิชา CFP จัดตามบทของหลักสูตรทางการ และเชื่อมกับวัตถุประสงค์การเรียนรู้ (LOS) "
+        "เรียบเรียงเองจากทฤษฎีการเงินมาตรฐาน ควรตรวจรายละเอียดกับตำราหลักสูตร",
+    "e.g. Sharpe, CAPM, ผลตอบแทน": "เช่น ผลตอบแทน, Sharpe, CAPM",
+    "All chapters": "ทุกบท",
+    "Chapter": "บท",
+    "Chapter {n}": "บทที่ {n}",
+    "Concepts shown": "หัวข้อที่แสดง",
+    "Chapters started": "บทที่เริ่มแล้ว",
+    "Learning objectives covered": "วัตถุประสงค์การเรียนรู้ที่ครอบคลุม",
+    "The official learning outcome statements (LOS) of the module that have a concept here.":
+        "วัตถุประสงค์การเรียนรู้ (LOS) ทางการของชุดวิชาที่มีหัวข้อในคลังความรู้แล้ว",
+    "Chapters, exam parts and coverage": "บท ส่วนของข้อสอบ และความครอบคลุม",
+    "Title": "ชื่อบท",
+    "Part": "ส่วน",
+    "LOS covered": "LOS ที่ครอบคลุม",
+    "Source: [TFPA learning objectives for Module {n}]({url}).": "ที่มา: [วัตถุประสงค์การเรียนรู้ชุดวิชาที่ {n} ของ TFPA]({url})",
+    "No concept matches these filters.": "ไม่พบหัวข้อตามตัวกรองนี้",
+    "This chapter is coming later.": "บทนี้จะเพิ่มภายหลัง",
+    "Worked example": "ตัวอย่างการคำนวณ",
+    "Practice ({n})": "แบบฝึกหัด ({n})",
+    "LOS {ids}": "LOS {ids}",
+    "Rule {id}": "กฎเกณฑ์ {id}",
 }
