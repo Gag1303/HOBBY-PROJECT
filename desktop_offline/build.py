@@ -7,6 +7,7 @@ into desktop_offline/dist/win-unpacked and puts a "CFP Toolkit Offline" shortcut
 """
 
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -52,6 +53,48 @@ def make_icon() -> None:
     img.save(icon, sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
 
 
+LOADING_SCREEN = """
+    <div id="cfp-loading"><div class="cfp-spin"></div><p>Loading…</p></div>
+    <style>
+      #cfp-loading { position: fixed; inset: 0; z-index: 999990; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 12px; background: #0e1117; color: #fafafa;
+        font: 18px "Source Sans Pro", "Segoe UI", sans-serif; }
+      @media (prefers-color-scheme: light) { #cfp-loading { background: #ffffff; color: #31333f; } }
+      .cfp-spin { width: 36px; height: 36px; border: 4px solid rgba(128, 128, 128, .3); border-top-color: #ff4b4b;
+        border-radius: 50%; animation: cfp-spin 1s linear infinite; }
+      @keyframes cfp-spin { to { transform: rotate(360deg); } }
+    </style>
+    <script>
+      // Remove the loading screen once the app has drawn its menu (the empty placeholder page doesn't count).
+      new MutationObserver((_, observer) => {
+        if (document.querySelector('[data-testid="stSidebar"]')?.innerText.trim()) {
+          document.getElementById("cfp-loading")?.remove();
+          observer.disconnect();
+        }
+      }).observe(document.documentElement, { childList: true, subtree: true });
+    </script>
+"""
+
+
+def quiet_loading() -> None:
+    """Hide the engine's start-up notices ("Loading Pyodide", each package name, ...) and show one simple
+    "Loading…" screen instead. Error notices stay on (the loading screen sits below them)."""
+    build = HERE / "build"
+    entry = next(p for p in (build / "assets").glob("index-*.js")
+                 if "readSitePackagesSnapshot" in p.read_text(encoding="utf-8"))
+    js = entry.read_text(encoding="utf-8")
+    found = re.findall(r"\{kernel:(\w+)\}", js)
+    if len(found) != 1:
+        raise SystemExit(f"Can't hide the loading notices: {entry.name} changed in this stlite version.")
+    entry.write_text(js.replace(f"{{kernel:{found[0]}}}", f"{{kernel:{found[0]},disableProgressToasts:!0}}"),
+                     encoding="utf-8")
+    page = build / "index.html"
+    html = page.read_text(encoding="utf-8").replace("<title>Stlite Desktop</title>", "<title>CFP Toolkit Offline</title>")
+    if '<div id="root"></div>' not in html:
+        raise SystemExit("Can't add the loading screen: build/index.html changed in this stlite version.")
+    page.write_text(html.replace('<div id="root"></div>', '<div id="root"></div>' + LOADING_SCREEN), encoding="utf-8")
+
+
 def npm(*args: str) -> None:
     subprocess.run(["npm", *args], cwd=HERE, check=True, shell=os.name == "nt")
 
@@ -71,6 +114,7 @@ if __name__ == "__main__":
     if not (HERE / "node_modules").exists():
         npm("install")
     npm("run", "dump")
+    quiet_loading()
     npm("run", "app:dir")
     print("Built:", EXE)
     print("Shortcut:", desktop_shortcut())

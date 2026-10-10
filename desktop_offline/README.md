@@ -11,7 +11,8 @@ A Windows program made from the same code as the normal app. Streamlit runs insi
 
 The code knows which edition it runs in by itself (`edition.py`).
 
-Limits: it takes about 20 seconds to start (Python loads inside the window), and links to websites
+Limits: it takes about 15–20 seconds to start (Python loads inside the window; a plain "Loading…" screen
+shows meanwhile), and links to websites
 (Maruey, SEC) don't open from it – the pages say so.
 
 ## Where things are saved
