@@ -27,6 +27,15 @@ Casio FC-200V: TVM (N, I/Y, PV, PMT, FV with P/Y, C/Y, BGN/END and a schedule), 
 pip install -r requirements.txt
 ```
 
+**Official fund risk levels (optional):** the fund pages show each fund's official risk level (RS1–RS8)
+from the **SEC Open API**. Get a free key at https://secopendata.sec.or.th (sign up → profile → Subscriptions →
+Subscribe → copy the Primary Key) and put it in `.streamlit/secrets.toml` (git-ignored, never uploaded):
+```
+SEC_API_KEY = "your-key"
+```
+Then run `python -m module2_investment.sec_api` once; the Sunday snapshot job refreshes it every week.
+Without a key everything else still works – the risk level just shows "–".
+
 ## Run the app (only on this computer)
 Double-click `run_app.bat`, or run:
 ```
@@ -109,6 +118,7 @@ The project is split in two:
 - `auth.py` – log in checks, roles and access areas
 - `career/content.py` – the CFP career guide text (summary of the TFPA documents)
 - `edition.py` – normal app or Offline Edition, and where personal files and the fund snapshot live
+- `module2_investment/sec_api.py` – official fund risk levels from the SEC Open API (key in `.streamlit/secrets.toml`)
 - `module2_investment/snapshot.py` – builds and reads the weekly fund snapshot
 - `desktop_offline/` – builds the Offline Edition program and runs the Sunday snapshot
 - `knowledge/` – the Knowledge notes (`m2_ch02.py`, …), the course chapters (`module2.py`) and the self-check (`library.py`)

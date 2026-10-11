@@ -12,6 +12,9 @@ user_settings.json
 # Accounts and password hashes (never upload)
 users.json
 
+# API keys (never upload) – e.g. the SEC Open API subscription key
+.streamlit/secrets.toml
+
 # My reading notes (personal study notes)
 book_notes.json
 

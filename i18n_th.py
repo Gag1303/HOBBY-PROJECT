@@ -639,4 +639,14 @@ TH = {
     "Practice ({n})": "แบบฝึกหัด ({n})",
     "LOS {ids}": "LOS {ids}",
     "Rule {id}": "กฎเกณฑ์ {id}",
+    # Official fund risk level (SEC Open API)
+    "Risk level": "ระดับความเสี่ยง",
+    "Risk": "ความเสี่ยง",
+    "Official risk level (RS1–RS8) from the fund's latest factsheet, via the SEC.":
+        "ระดับความเสี่ยงทางการ (RS1–RS8) จาก Fund Fact Sheet ล่าสุดของกองทุน ผ่านข้อมูลของ ก.ล.ต.",
+    "No official risk level found for this fund.": "ไม่พบระดับความเสี่ยงทางการของกองทุนนี้",
+    "Risk level {code}: {desc} (factsheet from {date}, source: SEC Open Data)":
+        "ระดับความเสี่ยง {code}: {desc} (Fund Fact Sheet มีผลตั้งแต่ {date} ที่มา: SEC Open Data)",
+    "Official risk levels (SEC): {funds} · highest in this portfolio: {top} / 8":
+        "ระดับความเสี่ยงทางการ (ก.ล.ต.): {funds} · สูงสุดในพอร์ตนี้: {top} / 8",
 }

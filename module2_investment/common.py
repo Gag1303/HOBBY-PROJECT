@@ -7,7 +7,7 @@ import streamlit as st
 
 from edition import OFFLINE
 from i18n import t
-from module2_investment import client, snapshot
+from module2_investment import client, sec_api, snapshot
 from module2_investment.tables import add_growth, amc_table, latest_nav, to_dataframe
 
 # Colors (validated colorblind-safe order). Up/down use blue/red rather than color alone:
@@ -35,8 +35,18 @@ def load_amcs() -> pd.DataFrame:
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
+def load_risk() -> pd.DataFrame:
+    """Official SEC risk level (RS1–RS8) per fund symbol, refreshed weekly (empty if never downloaded)."""
+    return snapshot.read_risk() if OFFLINE else sec_api.read()
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
 def load_market(day: date) -> pd.DataFrame:
-    return snapshot.read_market() if OFFLINE else latest_nav(day, amcs=load_amcs())
+    market = snapshot.read_market() if OFFLINE else latest_nav(day, amcs=load_amcs())
+    if market.empty:
+        return market
+    risk = load_risk()[["symbol", "risk_level", "risk_code", "risk_desc", "risk_date"]]
+    return market.merge(risk, on="symbol", how="left")
 
 
 @st.cache_data(show_spinner=False)

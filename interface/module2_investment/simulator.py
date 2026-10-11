@@ -199,6 +199,12 @@ if amount <= 0:
     st.stop()
 weights = weights / weight_sum * 100
 
+levels = market.set_index("symbol")["risk_level"].reindex(weights.index)
+if levels.notna().any():
+    st.caption("🎯 " + t("Official risk levels (SEC): {funds} · highest in this portfolio: {top} / 8",
+                         funds=", ".join(f"{s} {'–' if pd.isna(v) else v}" for s, v in levels.items()),
+                         top=int(levels.max())))
+
 with st.spinner(t("Loading fund history ...")):
     histories = {s: load_full_history(s, last_date) for s in weights.index}
 missing = [s for s, h in histories.items() if len(h) < 2]

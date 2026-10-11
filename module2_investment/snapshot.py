@@ -3,6 +3,7 @@
 build() downloads, once:
 - the latest NAV of every fund,
 - the fund companies,
+- the official SEC risk level (RS1–RS8) of every fund, if an SEC Open API key is set up (see sec_api.py),
 - the whole NAV history of the largest funds (by fund size), plus the funds the pages pick by default
   and any symbols listed in data/snapshot_extra.txt (one per line),
 and saves them in data/snapshot/ and in Documents\\CFP Toolkit\\snapshot (where the Offline Edition reads
@@ -48,6 +49,12 @@ def read_amcs() -> pd.DataFrame:
 
 def read_market() -> pd.DataFrame:
     return pd.read_csv(folder() / "market.csv.gz", parse_dates=["navDate", "dividendDate"])
+
+
+def read_risk() -> pd.DataFrame:
+    """Official SEC risk levels saved with the snapshot (empty if there were none)."""
+    from module2_investment import sec_api
+    return sec_api.read(folder() / "risk.csv")
 
 
 def read_histories() -> pd.DataFrame:
@@ -99,6 +106,14 @@ def build(top: int = TOP_FUNDS, pause: float = 0.5, log=print) -> dict:
     history.to_csv(tmp / "history.csv.gz", index=False)
     info = {"as_of": as_of.isoformat(), "built": datetime.now().isoformat(timespec="seconds"),
             "funds": len(market), "with_history": sorted(history["symbol"].unique()), "failed": failed}
+    risk_file = tmp / "risk.csv"
+    try:  # official risk levels from the SEC Open API (needs the key; the snapshot works without it)
+        from module2_investment import sec_api
+        sec_api.refresh(log)
+        shutil.copy2(sec_api.RISK_FILE, risk_file)
+    except Exception as e:
+        log(f"  SEC risk levels skipped: {e}")
+    info["risk_levels"] = risk_file.exists()
     (tmp / "meta.json").write_text(json.dumps(info, ensure_ascii=False, indent=1), encoding="utf-8")
     # Replace the old snapshot only once the new one is complete.
     for target in (SNAPSHOT_DIR, OFFLINE_DATA):

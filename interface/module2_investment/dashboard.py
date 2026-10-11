@@ -80,11 +80,13 @@ with tab_market:
     k3.metric(t("Down (last change)"), f"{(changed < 0).sum():,}")
     k4.metric(t("Median change"), signed(changed.median()))
 
-    f1, f2, f3 = st.columns([2, 2, 1])
+    f1, f2, f3, f4 = st.columns([2, 2, 1, 1])
     search = f1.text_input(t("Search symbol or name"), placeholder=t("e.g. K-USA, SET50, ทองคำ"))
     amc_pick = f2.multiselect(t("Fund company"), sorted(market["amcCode"].dropna().unique()),
                               placeholder=t("Choose an option"))
-    type_pick = f3.multiselect(t("Type"), sorted(market["projectType"].dropna().unique()),
+    risk_pick = f3.multiselect(t("Risk level"), list(range(1, 9)), placeholder=t("Choose an option"),
+                               help=t("Official risk level (RS1–RS8) from the fund's latest factsheet, via the SEC."))
+    type_pick = f4.multiselect(t("Type"), sorted(market["projectType"].dropna().unique()),
                                placeholder=t("Choose an option"))
 
     view = market
@@ -95,10 +97,12 @@ with tab_market:
                     | view["nameTh"].fillna("").str.contains(search, regex=False)]
     if amc_pick:
         view = view[view["amcCode"].isin(amc_pick)]
+    if risk_pick:
+        view = view[view["risk_level"].isin(risk_pick)]
     if type_pick:
         view = view[view["projectType"].isin(type_pick)]
 
-    table = view[["symbol", name_col, "navDate", "amcCode", "navPerUnit", "change", "changePct",
+    table = view[["symbol", name_col, "risk_level", "navDate", "amcCode", "navPerUnit", "change", "changePct",
                   "nav", "buyPrice", "sellPrice", "projectType"]].copy()
     table["nav"] = table["nav"] / 1e6
     # ETFs have no buy/sell price (they trade on the exchange). Streamlit shows empty cells as
@@ -116,6 +120,8 @@ with tab_market:
         column_config={
             "symbol": t("Symbol"),
             name_col: t("Fund name"),
+            "risk_level": st.column_config.NumberColumn(
+                t("Risk"), help=t("Official risk level (RS1–RS8) from the fund's latest factsheet, via the SEC.")),
             "navDate": t("NAV date"),
             "amcCode": t("Company"),
             "navPerUnit": t("NAV/unit"),
@@ -177,7 +183,13 @@ with tab_detail:
         st.subheader(sym)
         st.caption(f"{last['nameEn']}  ·  {last['nameTh']}  ·  {last['amcNameEn']}")
 
-        m1, m2, m3, m4 = st.columns(4)
+        risk = market.loc[market["symbol"] == sym].iloc[0]
+        m0, m1, m2, m3, m4 = st.columns([0.7, 1.1, 1.7, 1.3, 0.6])
+        if pd.notna(risk["risk_level"]):
+            m0.metric(t("Risk"), f"{risk['risk_level']} / 8",
+                      help=t("Official risk level (RS1–RS8) from the fund's latest factsheet, via the SEC."))
+        else:
+            m0.metric(t("Risk"), "–", help=t("No official risk level found for this fund."))
         m1.metric(t("NAV/unit · {date}", date=f"{last['navDate']:%d %b %Y}"),
                   f"{last['navPerUnit']:.4f}", signed(last["changePct"]))
         m2.metric(t("Fund size"),
@@ -185,6 +197,10 @@ with tab_detail:
         m3.metric(t("Data since"), f"{hist['navDate'].iloc[0]:%d %b %Y}",
                   help=t("First NAV in the data. Usually the fund's launch date."))
         m4.metric(t("Type"), last["projectType"] or "–")
+
+        if pd.notna(risk["risk_level"]):
+            st.caption("🎯 " + t("Risk level {code}: {desc} (factsheet from {date}, source: SEC Open Data)",
+                                 code=risk["risk_code"], desc=risk["risk_desc"], date=risk["risk_date"]))
 
         # Factsheet-style performance table
         st.markdown("#### " + t("Performance · dividends reinvested"))
