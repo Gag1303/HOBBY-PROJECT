@@ -1,4 +1,4 @@
-# Downloaded data (re-create any time with fetch_funds.py)
+# Downloaded data (SEC fund data, snapshot, SEC PDFs) – re-created by the app and the weekly snapshot
 data/
 
 # Python

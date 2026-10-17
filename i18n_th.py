@@ -649,4 +649,36 @@ TH = {
         "ระดับความเสี่ยง {code}: {desc} (Fund Fact Sheet มีผลตั้งแต่ {date} ที่มา: SEC Open Data)",
     "Official risk levels (SEC): {funds} · highest in this portfolio: {top} / 8":
         "ระดับความเสี่ยงทางการ (ก.ล.ต.): {funds} · สูงสุดในพอร์ตนี้: {top} / 8",
+    # Fund data from the SEC Open API
+    "Data: SEC Open Data (the Thai SEC's Fund API). Dividend history is not published by the SEC yet, so returns "
+    "of funds that pay dividends are NAV-only.":
+        "ข้อมูล: SEC Open Data (Fund API ของ ก.ล.ต.) ก.ล.ต. ยังไม่เผยแพร่ประวัติการจ่ายเงินปันผล "
+        "ผลตอบแทนของกองทุนที่จ่ายปันผลจึงคำนวณจาก NAV เท่านั้น",
+    "Policy": "นโยบาย",
+    "Dividends": "ปันผล",
+    "Yes": "จ่าย",
+    "No": "ไม่จ่าย",
+    "Whether this share class has a dividend policy (latest factsheet).":
+        "ชนิดหน่วยลงทุนนี้มีนโยบายจ่ายเงินปันผลหรือไม่ (ตาม Fund Fact Sheet ล่าสุด)",
+    "Performance": "ผลการดำเนินงาน",
+    "This fund pays dividends, but the SEC does not publish dividend history yet: the returns below are NAV-only "
+    "and lower than the fund's real total return.":
+        "กองทุนนี้จ่ายเงินปันผล แต่ ก.ล.ต. ยังไม่เผยแพร่ประวัติการจ่ายปันผล ผลตอบแทนด้านล่างจึงคำนวณจาก NAV เท่านั้น "
+        "และต่ำกว่าผลตอบแทนรวมที่แท้จริง",
+    "Returns are based on NAV. Dividends are not included yet (the SEC does not publish dividend history), so funds "
+    "that pay dividends look lower than their real total return. If a fund is younger than the period, its line "
+    "starts at its launch date.":
+        "ผลตอบแทนคำนวณจาก NAV ยังไม่รวมเงินปันผล (ก.ล.ต. ยังไม่เผยแพร่ประวัติการจ่ายปันผล) กองทุนที่จ่ายปันผลจึงดูต่ำกว่า"
+        "ผลตอบแทนรวมที่แท้จริง หากกองทุนอายุน้อยกว่าช่วงเวลาที่เลือก เส้นจะเริ่มที่วันจัดตั้งกองทุน",
+    "What would have happened if you had invested in a portfolio of funds with Lump sum, DCA or VCA? Uses the "
+    "funds' real NAV history.":
+        "ถ้าลงทุนในพอร์ตกองทุนแบบก้อนเดียว, DCA หรือ VCA ผลจะเป็นอย่างไร? ใช้ NAV จริงย้อนหลังของกองทุน",
+    "{funds} pay dividends, but the SEC does not publish dividend history yet: results are NAV-only and lower than "
+    "the real total return.":
+        "{funds} จ่ายเงินปันผล แต่ ก.ล.ต. ยังไม่เผยแพร่ประวัติการจ่ายปันผล ผลลัพธ์จึงคำนวณจาก NAV เท่านั้น "
+        "และต่ำกว่าผลตอบแทนรวมที่แท้จริง",
+    "The fund pages need a free SEC Open API key. See the README (Setup → SEC Open API key).":
+        "หน้ากองทุนต้องใช้ SEC Open API key (ฟรี) ดูวิธีตั้งค่าใน README (Setup → SEC Open API key)",
+    "Downloading the SEC fund list (first time only, about a minute) ...":
+        "กำลังดาวน์โหลดรายชื่อกองทุนจาก ก.ล.ต. (ครั้งแรกเท่านั้น ประมาณ 1 นาที) ...",
 }

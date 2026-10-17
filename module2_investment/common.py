@@ -1,67 +1,74 @@
 """Shared pieces for the Module 2 pages: cached data loaders, colors and small formatters."""
 
-from datetime import date
+from datetime import date, timedelta
 
 import pandas as pd
 import streamlit as st
 
 from edition import OFFLINE
 from i18n import t
-from module2_investment import client, sec_api, snapshot
-from module2_investment.tables import add_growth, amc_table, latest_nav, to_dataframe
+from module2_investment import sec_api, snapshot
+from module2_investment.tables import COLUMNS, add_growth, finish, from_nav, latest_nav
 
 # Colors (validated colorblind-safe order). Up/down use blue/red rather than color alone:
 # numbers always carry a +/- sign too.
 SERIES_COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"]
 UP_COLOR, DOWN_COLOR = "#2a78d6", "#e34948"
 
-DATA_NOTE = ("Data: thaimutualfund.com (AIMC) via api.settrade.com. "
-             "For personal/educational use only, not for commercial use.")
+DATA_NOTE = ("Data: SEC Open Data (the Thai SEC's Fund API). Dividend history is not published by the SEC yet, "
+             "so returns of funds that pay dividends are NAV-only.")
+LOOKBACK_DAYS = 10  # many funds (especially foreign ones) report NAV 1-3 days late
 
 
 # ---------- data loading (cached so we don't call the API on every click) ----------
 # The Offline Edition reads the weekly snapshot instead of the API (see module2_investment/snapshot.py).
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def load_last_date() -> date:
-    if OFFLINE:
-        return date.fromisoformat(snapshot.meta()["as_of"])
-    return client.last_business_date()
-
-
-@st.cache_data(ttl=3600 * 24, show_spinner=False)
-def load_amcs() -> pd.DataFrame:
-    return snapshot.read_amcs() if OFFLINE else amc_table()
+def load_catalogue() -> pd.DataFrame:
+    """Every active fund share class with names, company, policy, risk level and dividend policy."""
+    return snapshot.read_catalogue() if OFFLINE else sec_api.read()
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def load_risk() -> pd.DataFrame:
-    """Official SEC risk level (RS1–RS8) per fund symbol, refreshed weekly (empty if never downloaded)."""
-    return snapshot.read_risk() if OFFLINE else sec_api.read()
+def load_last_date() -> date:
+    if OFFLINE:
+        return date.fromisoformat(snapshot.meta()["as_of"])
+    return sec_api.last_nav_date()
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_market(day: date) -> pd.DataFrame:
-    market = snapshot.read_market() if OFFLINE else latest_nav(day, amcs=load_amcs())
-    if market.empty:
-        return market
-    risk = load_risk()[["symbol", "risk_level", "risk_code", "risk_desc", "risk_date"]]
-    return market.merge(risk, on="symbol", how="left")
+    """Newest NAV of every fund on or before `day`."""
+    if OFFLINE:
+        return snapshot.read_market()
+    return latest_nav(sec_api.nav_rows(day - timedelta(days=LOOKBACK_DAYS), day), load_catalogue())
 
 
 @st.cache_data(show_spinner=False)
 def _snapshot_histories() -> pd.DataFrame:
+    """Histories saved by the weekly snapshot (empty if there is none, or it is not from the SEC)."""
+    if snapshot.folder() is None or snapshot.meta().get("source") != "SEC":
+        return pd.DataFrame(columns=COLUMNS)
     return snapshot.read_histories()
 
 
 @st.cache_data(ttl=3600 * 6, show_spinner=False)
 def load_full_history(symbol: str, to_date: date) -> pd.DataFrame:
-    """Whole NAV history of a fund (one fast request), with the dividends-reinvested growth."""
+    """Whole NAV history of a fund with its growth. Online it starts from the weekly snapshot (if the fund is
+    in it) and only downloads the days after it."""
+    all_hist = _snapshot_histories()
+    cached = all_hist[all_hist["symbol"] == symbol]
     if OFFLINE:
-        all_hist = _snapshot_histories()
-        return all_hist[all_hist["symbol"] == symbol].reset_index(drop=True)
-    df = to_dataframe(client.nav_history(symbol, to_date=to_date), load_amcs())
-    return add_growth(df.drop_duplicates(subset=["navDate"])) if not df.empty else df
+        return cached.reset_index(drop=True)
+    catalogue = load_catalogue()
+    row = catalogue[catalogue["symbol"] == symbol]
+    if row.empty:
+        return pd.DataFrame(columns=COLUMNS)
+    proj_id, class_name = row["proj_id"].iat[0], row["fund_class_name"].iat[0]
+    start = cached["navDate"].max().date() + timedelta(days=1) if len(cached) else None
+    new = from_nav(sec_api.nav_history_rows(proj_id, class_name, start), catalogue)
+    df = finish(pd.concat([cached.reindex(columns=COLUMNS), new], ignore_index=True)) if len(cached) else new
+    return add_growth(df) if not df.empty else df
 
 
 def history_symbols() -> set[str] | None:
@@ -83,6 +90,13 @@ def last_date_or_stop() -> date:
     if OFFLINE and snapshot.folder() is None:
         st.error(t("No fund snapshot found. Run the weekly snapshot on the computer with the normal app."))
         st.stop()
+    if not OFFLINE and not sec_api.api_key():
+        st.error(t("The fund pages need a free SEC Open API key. See the README (Setup → SEC Open API key)."))
+        st.stop()
+    if not OFFLINE and load_catalogue().empty:
+        with st.spinner(t("Downloading the SEC fund list (first time only, about a minute) ...")):
+            sec_api.refresh()
+        load_catalogue.clear()
     try:
         return load_last_date()
     except Exception as e:  # network down, API changed, ...

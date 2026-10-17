@@ -34,7 +34,7 @@ REBALANCE_HELP = ("Every amount invested is split by the target weights. Over ti
 
 st.title("📈 " + t("Investment simulator"))
 st.caption(t("What would have happened if you had invested in a portfolio of funds with Lump sum, "
-             "DCA or VCA? Uses the funds' real NAV history, dividends reinvested."))
+             "DCA or VCA? Uses the funds' real NAV history."))
 st.sidebar.caption(t(DATA_NOTE))
 
 last_date = last_date_or_stop()
@@ -199,6 +199,10 @@ if amount <= 0:
     st.stop()
 weights = weights / weight_sum * 100
 
+pays = market.set_index("symbol")["dividendPolicy"].reindex(weights.index)
+if (pays == "Y").any():
+    st.warning(t("{funds} pay dividends, but the SEC does not publish dividend history yet: results are NAV-only "
+                 "and lower than the real total return.", funds=", ".join(pays.index[pays == "Y"])))
 levels = market.set_index("symbol")["risk_level"].reindex(weights.index)
 if levels.notna().any():
     st.caption("🎯 " + t("Official risk levels (SEC): {funds} · highest in this portfolio: {top} / 8",

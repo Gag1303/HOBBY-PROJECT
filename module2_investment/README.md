@@ -1,27 +1,28 @@
 # Module 2 · Investment planning – Thai mutual funds
 
-NAV (net asset value) data for every Thai mutual fund, the same data shown on
-[thaimutualfund.com → Funds](https://www.thaimutualfund.com/AIMC/mutualFundCenter.jsp).
+NAV (net asset value) data, official risk level and dividend policy for every Thai mutual fund, from the
+**SEC Open API** (the Thai SEC's official open data, https://secopendata.sec.or.th).
 
 ## How it works
-The "Funds" page on thaimutualfund.com embeds an app from `weblink.settrade.com`, and that app
-loads its data from a JSON API at `api.settrade.com`. Instead of scraping the web page, this
-project calls that API directly:
+`sec_api.py` calls the SEC Fund API (it needs a free key – see the main README, *Setup*):
 
 | Endpoint | What it returns |
 |---|---|
-| `mutual-fund/last-business-date` | latest date with NAV data |
-| `fund-nav/all?fromDate=DD/MM/YYYY&toDate=DD/MM/YYYY` | NAV of all funds (max ~1 month range) |
-| `fund-nav/{SYMBOL}?fromDate=...&toDate=...` | NAV history of one fund (any range, back to launch) |
-| `mutual-fund/amc/list` | asset management companies |
+| `/v2/fund/general-info/profiles` | every fund and share class: names, company, policy, status |
+| `/v2/fund/factsheet/risk-spectrum` | official risk level RS1–RS8 from the latest Fund Fact Sheet |
+| `/v2/fund/factsheet/dividend-policy` | whether each share class has a dividend policy (Y/N) |
+| `/v2/fund/daily-info/nav` | daily NAV, fund size, offer/redemption prices (all funds per day, or one class's history) |
+
+The first three make the **fund catalogue** (`data/sec_funds.csv`, refreshed every Sunday). A fund's symbol in
+the app is its share class name (e.g. `K-USA-A(A)`), or the fund's short name when it has no classes.
 
 ## Dashboard
 Start the CFP Toolkit app (see the main README), then open **Module 2 · Investment planning →
 Thai mutual funds** in the sidebar. It has four tabs:
-- **Market overview** – every fund's latest NAV, search/filter, biggest movers, CSV download
-- **Fund detail** – one fund's full history since launch: factsheet-style returns
-  (YTD, 3M … 10Y, since launch), NAV chart, return by calendar year, drop from previous
-  high, and dividend history
+- **Market overview** – every fund's latest NAV with its official risk level and policy, search/filter,
+  biggest movers, CSV download
+- **Fund detail** – one fund's full history since launch: risk level, factsheet-style returns
+  (YTD, 3M … 10Y, since launch), NAV chart, return by calendar year, drop from previous high
 - **Compare funds** – up to 5 funds on one "growth of 100 THB" chart, with
   total/annualized return, volatility and max drawdown for 1M to Max
 - **Fund companies** – fund size and number of funds per asset management company
@@ -34,39 +35,32 @@ and "Split equally" resets every fund to an equal share. Then back-test Lump sum
 DCA (same amount each period) or VCA (value averaging: top up to a target that grows each
 period) on any date range, monthly / weekly / quarterly. Each amount invested is split by the
 target weights; optional rebalancing (yearly or every period) brings drifted weights back.
-Shows money-weighted return (XIRR), value and weight drift by fund, every buy/sell, and a
-side-by-side comparison of all three strategies. The "Simulate" button on Fund detail opens it
-with a portfolio of just that fund.
+Shows money-weighted return (XIRR), value and weight drift by fund, every buy/sell, the official risk level
+of each fund, and a side-by-side comparison of all three strategies. The "Simulate" button on Fund detail opens
+it with a portfolio of just that fund.
 
-## Command-line usage
+## Command line
 Run from the project folder:
 ```
-python -m module2_investment.fetch_funds latest                    # all ~3,400 funds, latest NAV -> data/
-python -m module2_investment.fetch_funds latest --excel            # also save an .xlsx
-python -m module2_investment.fetch_funds latest --date 2026-09-30  # latest NAV as of a specific day
-python -m module2_investment.fetch_funds history "K-USA-A(A)" --days 365
-python -m module2_investment.fetch_funds history SCBSET --from 2026-01-01 --to 2026-06-30
-python -m module2_investment.fetch_funds amcs                      # list of fund companies
+python -m module2_investment.sec_api     # refresh the fund catalogue (names, policy, risk level, dividend policy)
+python -m module2_investment.snapshot    # weekly snapshot (runs every Sunday by itself)
 ```
-
-CSV files are saved with UTF-8 BOM so Thai names display correctly in Excel.
 
 ## Files
 - The two pages are in `interface/module2_investment/`: `dashboard.py` (fund dashboard) and
   `simulator.py` (investment simulator)
+- `sec_api.py` – calls the SEC Open API: fund catalogue, daily NAV, one fund's history
 - `common.py` – cached data loading, colors and formatting shared by both pages
-- `client.py` – functions that call the API (reuse these in your own scripts/notebooks)
-- `tables.py` – cleans API data into tables and calculates return/risk numbers
+- `tables.py` – turns SEC NAV rows into tables and calculates return/risk numbers
 - `simulate.py` – portfolio Lump sum / DCA / VCA back-test with rebalancing, and XIRR
-- `fetch_funds.py` – command-line tool that saves CSV/Excel files
+- `snapshot.py` – weekly snapshot: catalogue, latest NAV of all funds and the history of the ~300 largest. The
+  Offline Edition reads it; the normal app uses it as a cache and only downloads the days after it.
 
 ## Notes
-- This is an unofficial, undocumented API, so it can change without notice.
-- thaimutualfund.com is run by AIMC. Its terms say the data is for information/education and
-  **may not be used for commercial purposes**. Keep this project personal, and use official
-  sources (e.g. the SEC Thailand Open API) for any professional or client work.
-- In the dashboard, returns include dividends reinvested (total return), like official
-  factsheets. The command-line `history` summary is NAV price change only.
-- Renamed funds (e.g. TMB → Eastspring "ES-") keep their full history under the new symbol.
+- **Dividends:** the SEC's dividend-history endpoint returns no data yet, so returns are **NAV-only**. For funds
+  that don't pay dividends (about 80% of share classes) that is the real total return; funds that do pay show a
+  warning. Add the dividend history in `sec_api.py` / `tables.py` once the SEC publishes it.
+- The SEC NAV history misses a few days here and there (about 0.7% for some funds); returns are hardly affected.
 - Many funds (especially foreign-investing ones) publish NAV 1–3 days late. "Latest" therefore
   means each fund's newest NAV within the last 10 days. Check the NAV date column.
+- Rate limit: 5,000 calls per 5 minutes. `sec_api.get_page` waits and retries if it is reached.

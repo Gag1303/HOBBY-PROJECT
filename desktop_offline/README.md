@@ -7,7 +7,7 @@ A Windows program made from the same code as the normal app. Streamlit runs insi
 |---|---|---|
 | Calculator, Law & Regulation, reading list + notes, career guide | ✅ | ✅ |
 | SEC update watcher | ✅ | hidden |
-| Thai mutual funds, simulator | live from Settrade | weekly snapshot (all funds' latest NAV + full history of the ~300 largest) |
+| Thai mutual funds, simulator | live from the SEC Open API | weekly snapshot (all funds' latest NAV + full history of the ~300 largest) |
 
 The code knows which edition it runs in by itself (`edition.py`).
 

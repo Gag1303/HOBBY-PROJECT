@@ -86,8 +86,8 @@ with tab_market:
                               placeholder=t("Choose an option"))
     risk_pick = f3.multiselect(t("Risk level"), list(range(1, 9)), placeholder=t("Choose an option"),
                                help=t("Official risk level (RS1–RS8) from the fund's latest factsheet, via the SEC."))
-    type_pick = f4.multiselect(t("Type"), sorted(market["projectType"].dropna().unique()),
-                               placeholder=t("Choose an option"))
+    policy_pick = f4.multiselect(t("Policy"), sorted(market["policy"].dropna().unique()),
+                                 placeholder=t("Choose an option"))
 
     view = market
     if search:
@@ -99,11 +99,11 @@ with tab_market:
         view = view[view["amcCode"].isin(amc_pick)]
     if risk_pick:
         view = view[view["risk_level"].isin(risk_pick)]
-    if type_pick:
-        view = view[view["projectType"].isin(type_pick)]
+    if policy_pick:
+        view = view[view["policy"].isin(policy_pick)]
 
     table = view[["symbol", name_col, "risk_level", "navDate", "amcCode", "navPerUnit", "change", "changePct",
-                  "nav", "buyPrice", "sellPrice", "projectType"]].copy()
+                  "nav", "buyPrice", "sellPrice", "policy"]].copy()
     table["nav"] = table["nav"] / 1e6
     # ETFs have no buy/sell price (they trade on the exchange). Streamlit shows empty cells as
     # "None", so turn these two columns into text with a dash instead.
@@ -130,7 +130,7 @@ with tab_market:
             "nav": t("Fund size (M THB)"),
             "buyPrice": t("Redemption price"),
             "sellPrice": t("Offer price"),
-            "projectType": t("Type"),
+            "policy": t("Policy"),
         },
     )
     st.download_button("⬇️ " + t("Download this table (CSV)"), csv_bytes(view),
@@ -180,10 +180,11 @@ with tab_detail:
         st.warning(t("No history found for this fund."))
     else:
         last = hist.iloc[-1]
+        risk = market.loc[market["symbol"] == sym].iloc[0]  # catalogue facts: policy, risk, dividends
         st.subheader(sym)
-        st.caption(f"{last['nameEn']}  ·  {last['nameTh']}  ·  {last['amcNameEn']}")
+        st.caption("  ·  ".join(str(v) for v in (last["nameEn"], last["nameTh"], last["amcNameEn"], risk["policy"])
+                                if pd.notna(v)))
 
-        risk = market.loc[market["symbol"] == sym].iloc[0]
         m0, m1, m2, m3, m4 = st.columns([0.7, 1.1, 1.7, 1.3, 0.6])
         if pd.notna(risk["risk_level"]):
             m0.metric(t("Risk"), f"{risk['risk_level']} / 8",
@@ -196,14 +197,18 @@ with tab_detail:
                   t("{n} M THB", n=f"{last['nav'] / 1e6:,.0f}") if pd.notna(last["nav"]) else "–")
         m3.metric(t("Data since"), f"{hist['navDate'].iloc[0]:%d %b %Y}",
                   help=t("First NAV in the data. Usually the fund's launch date."))
-        m4.metric(t("Type"), last["projectType"] or "–")
+        pays = {"Y": t("Yes"), "N": t("No")}.get(risk["dividendPolicy"], "–")
+        m4.metric(t("Dividends"), pays, help=t("Whether this share class has a dividend policy (latest factsheet)."))
 
         if pd.notna(risk["risk_level"]):
             st.caption("🎯 " + t("Risk level {code}: {desc} (factsheet from {date}, source: SEC Open Data)",
                                  code=risk["risk_code"], desc=risk["risk_desc"], date=risk["risk_date"]))
 
         # Factsheet-style performance table
-        st.markdown("#### " + t("Performance · dividends reinvested"))
+        st.markdown("#### " + t("Performance"))
+        if risk["dividendPolicy"] == "Y":
+            st.warning(t("This fund pays dividends, but the SEC does not publish dividend history yet: the returns "
+                         "below are NAV-only and lower than the fund's real total return."))
         perf = period_returns(hist).set_index("Period").T
         perf.index = [t("Return"), t("Per year (annualized)")]
         perf.columns = [t(c) for c in perf.columns]
@@ -352,8 +357,9 @@ with tab_history:
                     "Days of data": st.column_config.NumberColumn(t("Days of data"), format="%d"),
                 },
             )
-            st.caption(t("Returns include dividends reinvested (total return). If a fund is younger "
-                         "than the period, its line starts at its launch date."))
+            st.caption(t("Returns are based on NAV. Dividends are not included yet (the SEC does not publish "
+                         "dividend history), so funds that pay dividends look lower than their real total return. "
+                         "If a fund is younger than the period, its line starts at its launch date."))
 
             all_hist = pd.concat(histories.values(), ignore_index=True)
             st.download_button("⬇️ " + t("Download history (CSV)"), csv_bytes(all_hist),

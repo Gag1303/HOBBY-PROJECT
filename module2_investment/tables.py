@@ -1,56 +1,48 @@
-"""Turn raw API rows into clean pandas tables, and compute fund statistics."""
-
-from datetime import date, timedelta
+"""Turn SEC NAV rows into clean pandas tables, and compute fund statistics."""
 
 import numpy as np
 import pandas as pd
 
-from module2_investment import client
-
-# Columns we keep, in a readable order.
+# Columns we keep, in a readable order. Dividend columns stay empty until the SEC publishes dividend history.
 COLUMNS = [
     "navDate", "symbol", "nameEn", "nameTh", "amcCode", "amcNameEn",
     "navPerUnit", "priorNavPerUnit", "change", "changePct", "nav",
-    "buyPrice", "sellPrice", "dividendValue", "dividendDate", "projectType",
+    "buyPrice", "sellPrice", "dividendValue", "dividendDate", "policy", "dividendPolicy",
+    "risk_level", "risk_code", "risk_desc", "risk_date",
 ]
+NAV_COLUMNS = {"nav_date": "navDate", "last_val": "navPerUnit", "net_asset": "nav",
+               "buy_price": "buyPrice", "sell_price": "sellPrice"}
 
 TRADING_DAYS_PER_YEAR = 245  # approx. Thai business days in a year
 
 
-def amc_table() -> pd.DataFrame:
-    return pd.DataFrame(client.list_amcs()).rename(
-        columns={"id": "amcId", "code": "amcCode", "nameEn": "amcNameEn", "nameTh": "amcNameTh"}
-    )
+def finish(df: pd.DataFrame) -> pd.DataFrame:
+    """Add the previous NAV and the change of each fund's rows (sorted by date, one row per day)."""
+    df = df.sort_values(["symbol", "navDate"]).drop_duplicates(["symbol", "navDate"], keep="last")
+    df["priorNavPerUnit"] = df.groupby("symbol")["navPerUnit"].shift()
+    df["change"] = (df["navPerUnit"] - df["priorNavPerUnit"]).round(4)
+    df["changePct"] = (df["change"] / df["priorNavPerUnit"] * 100).round(2)
+    return df.reindex(columns=COLUMNS).sort_values(["navDate", "symbol"]).reset_index(drop=True)
 
 
-def to_dataframe(rows: list[dict], amcs: pd.DataFrame | None = None) -> pd.DataFrame:
-    """Turn API rows into a clean table with AMC names and % change."""
+def from_nav(rows: list[dict], catalogue: pd.DataFrame) -> pd.DataFrame:
+    """SEC daily NAV rows → a clean table with fund names, company, policy, risk level and % change."""
     df = pd.DataFrame(rows)
     if df.empty:
-        return df
-
-    if amcs is None:
-        amcs = amc_table()
-    df = df.merge(amcs[["amcId", "amcCode", "amcNameEn"]], on="amcId", how="left")
-    # Some AMCs have no short code; fall back to the full name.
-    df["amcCode"] = df["amcCode"].fillna(df["amcNameEn"])
-
-    df["navDate"] = pd.to_datetime(df["navDate"].str[:10])
-    df["dividendDate"] = pd.to_datetime(df["dividendDate"].str[:10])
-    df["change"] = df["change"].round(4)
-    df["changePct"] = (df["change"] / df["priorNavPerUnit"] * 100).round(2)
-    return df[COLUMNS].sort_values(["navDate", "symbol"]).reset_index(drop=True)
+        return pd.DataFrame(columns=COLUMNS)
+    df = df.rename(columns=NAV_COLUMNS)
+    df["navDate"] = pd.to_datetime(df["navDate"])
+    for col in ("buyPrice", "sellPrice"):  # ETFs trade on the exchange and report 0
+        df[col] = df[col].where(df[col] > 0)
+    df["dividendValue"], df["dividendDate"] = np.nan, pd.NaT
+    df = df.merge(catalogue, on=["proj_id", "fund_class_name"], how="inner")  # only funds we know
+    return finish(df)
 
 
-def latest_nav(as_of: date, lookback_days: int = 10, amcs: pd.DataFrame | None = None) -> pd.DataFrame:
-    """Newest NAV of every fund on or before `as_of`.
-
-    Many funds (especially ones investing abroad) publish NAV 1-3 days late, so asking
-    for a single day misses more than half of them. We look back a few days instead
-    and keep each fund's most recent row.
-    """
-    rows = client.nav_all_funds(as_of - timedelta(days=lookback_days), as_of)
-    df = to_dataframe(rows, amcs)
+def latest_nav(rows: list[dict], catalogue: pd.DataFrame) -> pd.DataFrame:
+    """Newest NAV of every fund in the rows (many funds, especially foreign ones, report 1-3 days late,
+    so the rows should cover the last ~10 days)."""
+    df = from_nav(rows, catalogue)
     if df.empty:
         return df
     df = df.sort_values("navDate").drop_duplicates(subset=["symbol"], keep="last")
@@ -58,7 +50,7 @@ def latest_nav(as_of: date, lookback_days: int = 10, amcs: pd.DataFrame | None =
 
 
 def add_growth(history: pd.DataFrame) -> pd.DataFrame:
-    """Add a `growth` column: value of 1 THB invested at the start, dividends reinvested.
+    """Add a `growth` column: value of 1 THB invested at the start, dividends reinvested (when known).
 
     On the day a fund goes ex-dividend its NAV drops by the dividend, so that day's return
     is (NAV + dividend) / previous NAV - 1. This is the "total return" used in factsheets.

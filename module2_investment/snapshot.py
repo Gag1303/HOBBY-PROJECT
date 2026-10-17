@@ -1,13 +1,14 @@
 """Weekly fund snapshot for the Offline Edition (see edition.py).
 
-build() downloads, once:
+build() downloads from the SEC Open API (see sec_api.py; needs the key):
+- the fund catalogue (names, company, policy, official risk level RS1–RS8, dividend policy),
 - the latest NAV of every fund,
-- the fund companies,
-- the official SEC risk level (RS1–RS8) of every fund, if an SEC Open API key is set up (see sec_api.py),
 - the whole NAV history of the largest funds (by fund size), plus the funds the pages pick by default
-  and any symbols listed in data/snapshot_extra.txt (one per line),
+  and any symbols listed in data/snapshot_extra.txt (one per line). After the first time only the new days
+  are downloaded,
 and saves them in data/snapshot/ and in Documents\\CFP Toolkit\\snapshot (where the Offline Edition reads
-it). The Offline Edition shows these files instead of calling the API.
+it). The Offline Edition shows these files instead of calling the API; the normal app uses the histories as a
+cache, so it only downloads the days after the snapshot.
 
 Run `python -m module2_investment.snapshot` (the Sunday job does this; see desktop_offline/README.md).
 """
@@ -15,8 +16,8 @@ Run `python -m module2_investment.snapshot` (the Sunday job does this; see deskt
 import json
 import shutil
 import sys
-import time
-from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -27,7 +28,8 @@ TOP_FUNDS = 300                                  # largest funds that get their 
 ALWAYS = ["ES-GQG", "K-USA-A(A)", "SCBSET"]      # picked by default on the fund pages
 EXTRA_FILE = PROJECT / "data" / "snapshot_extra.txt"
 OFFLINE_DATA = Path.home() / "Documents" / "CFP Toolkit" / "snapshot"  # Offline Edition's copy
-NAME_COLUMNS = ["symbol", "nameEn", "nameTh", "amcCode", "amcNameEn", "projectType"]
+NAME_COLUMNS = ["symbol", "nameEn", "nameTh", "amcCode", "amcNameEn", "policy", "dividendPolicy",
+                "risk_level", "risk_code", "risk_desc", "risk_date"]
 
 
 # ---------- reading (Offline Edition) ----------
@@ -43,24 +45,20 @@ def meta(d: Path | None = None) -> dict:
     return json.loads((d / "meta.json").read_text(encoding="utf-8"))
 
 
-def read_amcs() -> pd.DataFrame:
-    return pd.read_csv(folder() / "amcs.csv")
+def read_catalogue() -> pd.DataFrame:
+    from module2_investment import sec_api
+    return sec_api.read(folder() / "funds.csv")
 
 
 def read_market() -> pd.DataFrame:
-    return pd.read_csv(folder() / "market.csv.gz", parse_dates=["navDate", "dividendDate"])
+    market = pd.read_csv(folder() / "market.csv.gz", parse_dates=["navDate", "dividendDate"])
+    market["risk_level"] = market["risk_level"].astype("Int64")
+    return market
 
 
-def read_risk() -> pd.DataFrame:
-    """Official SEC risk levels saved with the snapshot (empty if there were none)."""
-    from module2_investment import sec_api
-    return sec_api.read(folder() / "risk.csv")
-
-
-def read_histories() -> pd.DataFrame:
+def read_histories(names: bool = True) -> pd.DataFrame:
     hist = pd.read_csv(folder() / "history.csv.gz", parse_dates=["navDate", "dividendDate"])
-    names = read_market()[NAME_COLUMNS]
-    return hist.merge(names, on="symbol", how="left")
+    return hist.merge(read_market()[NAME_COLUMNS], on="symbol", how="left") if names else hist
 
 
 # ---------- building (normal app, internet needed) ----------
@@ -72,48 +70,50 @@ def _extra_symbols() -> list[str]:
         return []
 
 
-def build(top: int = TOP_FUNDS, pause: float = 0.5, log=print) -> dict:
-    from module2_investment import client
-    from module2_investment.tables import add_growth, amc_table, latest_nav, to_dataframe
+def build(top: int = TOP_FUNDS, workers: int = 4, log=print) -> dict:
+    from module2_investment import sec_api
+    from module2_investment.tables import add_growth, finish, from_nav, latest_nav
 
-    as_of = client.last_business_date()
-    amcs = amc_table()
-    market = latest_nav(as_of, amcs=amcs)
+    catalogue = sec_api.refresh(log)
+    as_of = sec_api.last_nav_date()
+    market = latest_nav(sec_api.nav_rows(as_of - timedelta(days=10), as_of), catalogue)
     largest = market.sort_values("nav", ascending=False)["symbol"].head(top).tolist()
     wanted = list(dict.fromkeys(largest + ALWAYS + _extra_symbols()))
     symbols = [s for s in wanted if s in set(market["symbol"])]
-    log(f"NAV of {len(market)} funds as of {as_of}; downloading the history of {len(symbols)} funds ...")
+    # Reuse the last SEC snapshot: only the days after it are downloaded.
+    previous = (read_histories(names=False) if folder() and meta().get("source") == "SEC"
+                else pd.DataFrame(columns=["symbol", "navDate"]))
+    log(f"NAV of {len(market)} funds as of {as_of}; history of {len(symbols)} funds "
+        f"({previous['symbol'].nunique()} already saved) ...")
+    by_symbol = catalogue.set_index("symbol")
+
+    def one(sym: str) -> pd.DataFrame:
+        old = previous[previous["symbol"] == sym]
+        start = old["navDate"].max().date() + timedelta(days=1) if len(old) else None
+        rows = sec_api.nav_history_rows(by_symbol.at[sym, "proj_id"], by_symbol.at[sym, "fund_class_name"], start)
+        df = finish(pd.concat([old, from_nav(rows, catalogue)], ignore_index=True)) if len(old) else from_nav(rows, catalogue)
+        return add_growth(df) if not df.empty else df
 
     histories, failed = [], []
-    for i, sym in enumerate(symbols, 1):
-        try:
-            df = to_dataframe(client.nav_history(sym, to_date=as_of), amcs)
-            if not df.empty:
-                histories.append(add_growth(df.drop_duplicates(subset=["navDate"])))
-        except Exception as e:  # one fund failing should not stop the snapshot
-            failed.append(sym)
-            log(f"  {sym}: {e}")
-        if i % 50 == 0:
-            log(f"  {i}/{len(symbols)}")
-        time.sleep(pause)  # be gentle with the API
+    with ThreadPoolExecutor(workers) as pool:
+        for i, (sym, future) in enumerate([(s, pool.submit(one, s)) for s in symbols], 1):
+            try:
+                histories.append(future.result())
+            except Exception as e:  # one fund failing should not stop the snapshot
+                failed.append(sym)
+                log(f"  {sym}: {e}")
+            if i % 50 == 0:
+                log(f"  {i}/{len(symbols)}")
     history = pd.concat(histories, ignore_index=True).drop(columns=[c for c in NAME_COLUMNS if c != "symbol"])
 
     tmp = SNAPSHOT_DIR.with_name("snapshot_new")
     shutil.rmtree(tmp, ignore_errors=True)
     tmp.mkdir(parents=True)
-    amcs.to_csv(tmp / "amcs.csv", index=False)
+    catalogue.to_csv(tmp / "funds.csv", index=False)
     market.to_csv(tmp / "market.csv.gz", index=False)
     history.to_csv(tmp / "history.csv.gz", index=False)
-    info = {"as_of": as_of.isoformat(), "built": datetime.now().isoformat(timespec="seconds"),
+    info = {"source": "SEC", "as_of": as_of.isoformat(), "built": datetime.now().isoformat(timespec="seconds"),
             "funds": len(market), "with_history": sorted(history["symbol"].unique()), "failed": failed}
-    risk_file = tmp / "risk.csv"
-    try:  # official risk levels from the SEC Open API (needs the key; the snapshot works without it)
-        from module2_investment import sec_api
-        sec_api.refresh(log)
-        shutil.copy2(sec_api.RISK_FILE, risk_file)
-    except Exception as e:
-        log(f"  SEC risk levels skipped: {e}")
-    info["risk_levels"] = risk_file.exists()
     (tmp / "meta.json").write_text(json.dumps(info, ensure_ascii=False, indent=1), encoding="utf-8")
     # Replace the old snapshot only once the new one is complete.
     for target in (SNAPSHOT_DIR, OFFLINE_DATA):
